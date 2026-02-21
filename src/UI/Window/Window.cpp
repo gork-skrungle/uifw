@@ -6,21 +6,23 @@
 #include <cstdio>
 #include <stdexcept>
 
-void ui::initPlatform() {
+void ui::initPlatform()
+{
   const int version = SDL_GetVersion();
-  const char* sdlRevision = SDL_GetRevision();
+  const char *sdlRevision = SDL_GetRevision();
 
   SDL_Log("Initializing platform...\n");
   SDL_Log(" > SDL Version: %i.%i %s\n", SDL_VERSIONNUM_MAJOR(version),
-         SDL_VERSIONNUM_MINOR(version), sdlRevision);
+          SDL_VERSIONNUM_MINOR(version), sdlRevision);
 
   if (SDL_Init(SDL_INIT_VIDEO) == false) {
     throw std::runtime_error("Unable to initialize SDL.");
   }
 }
 
-ui::DrawPipeline ui::createDrawPipeline(const Window& window,
-                                        const Shader& shader) {
+ui::DrawPipeline ui::createDrawPipeline(const Window &window,
+                                        const Shader &shader)
+{
   DrawPipeline drawPipeline = {};
 
   // Create vertex buffer
@@ -28,7 +30,8 @@ ui::DrawPipeline ui::createDrawPipeline(const Window& window,
   bufferInfo.size = sizeof(g_vertices);
   bufferInfo.usage = SDL_GPU_BUFFERUSAGE_VERTEX;
 
-  drawPipeline.vertexBuffer = SDL_CreateGPUBuffer(window.gpuDevice, &bufferInfo);
+  drawPipeline.vertexBuffer =
+      SDL_CreateGPUBuffer(window.gpuDevice, &bufferInfo);
 
   // Transfer data to vertex buffer
   SDL_GPUTransferBufferCreateInfo transferInfo = {};
@@ -39,7 +42,7 @@ ui::DrawPipeline ui::createDrawPipeline(const Window& window,
       SDL_CreateGPUTransferBuffer(window.gpuDevice, &transferInfo);
 
   // Map to pointer & transfer data
-  auto* data = static_cast<Vertex*>(SDL_MapGPUTransferBuffer(
+  auto *data = static_cast<Vertex *>(SDL_MapGPUTransferBuffer(
       window.gpuDevice, drawPipeline.transferBuffer, false));
 
   SDL_memcpy(data, g_vertices, sizeof(g_vertices));
@@ -53,9 +56,9 @@ ui::DrawPipeline ui::createDrawPipeline(const Window& window,
   // when the buffer is allocated.
 
   // Start copy pass
-  SDL_GPUCommandBuffer* commandBuffer =
+  SDL_GPUCommandBuffer *commandBuffer =
       SDL_AcquireGPUCommandBuffer(window.gpuDevice);
-  SDL_GPUCopyPass* copyPass = SDL_BeginGPUCopyPass(commandBuffer);
+  SDL_GPUCopyPass *copyPass = SDL_BeginGPUCopyPass(commandBuffer);
 
   // Get data location
   SDL_GPUTransferBufferLocation location = {};
@@ -125,8 +128,8 @@ ui::DrawPipeline ui::createDrawPipeline(const Window& window,
       SDL_GPU_BLENDFACTOR_SRC_ALPHA;
   colorTargetDescriptions[0].blend_state.dst_alpha_blendfactor =
       SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_ALPHA;
-  colorTargetDescriptions[0].format = SDL_GetGPUSwapchainTextureFormat(
-    window.gpuDevice, window.ptr);
+  colorTargetDescriptions[0].format =
+      SDL_GetGPUSwapchainTextureFormat(window.gpuDevice, window.ptr);
 
   pipelineInfo.target_info.num_color_targets = 1;
   pipelineInfo.target_info.color_target_descriptions = colorTargetDescriptions;
@@ -141,10 +144,11 @@ ui::DrawPipeline ui::createDrawPipeline(const Window& window,
   return drawPipeline;
 }
 
-void ui::initializeWindow(const char* title,
+void ui::initializeWindow(const char *title,
                           const int width,
                           const int height,
-                          Window* window) {
+                          Window *window)
+{
   // Create window
   SDL_Log("Initializing window...\n");
   window->ptr = SDL_CreateWindow(title, width, height, SDL_WINDOW_RESIZABLE);
@@ -158,21 +162,21 @@ void ui::initializeWindow(const char* title,
   SDL_Log("Creating GPU device...\n");
 
 #ifdef _NDEBUG
-  window->gpuDevice = SDL_CreateGPUDevice(
-      SDL_GPU_SHADERFORMAT_SPIRV, false, nullptr);
+  window->gpuDevice =
+      SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV, false, nullptr);
 #else
-  window->gpuDevice = SDL_CreateGPUDevice(
-      SDL_GPU_SHADERFORMAT_SPIRV, true, nullptr);
+  window->gpuDevice =
+      SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV, true, nullptr);
 #endif
 
   SDL_Log(" > Device backend: %s\n", SDL_GetGPUDeviceDriver(window->gpuDevice));
   SDL_ClaimWindowForGPUDevice(window->gpuDevice, window->ptr);
 }
 
-inline void draw(const ui::Window* window,
-                 const ui::DrawPipeline& drawPipeline) {
+inline void draw(const ui::Window *window, const ui::DrawPipeline &drawPipeline)
+{
   // Acquire command buffer
-  SDL_GPUCommandBuffer* commandBuffer =
+  SDL_GPUCommandBuffer *commandBuffer =
       SDL_AcquireGPUCommandBuffer(window->gpuDevice);
 
   // Get swapchain texture
@@ -190,14 +194,14 @@ inline void draw(const ui::Window* window,
 
   // Create color target
   SDL_GPUColorTargetInfo colorTargetInfo = {};
-  colorTargetInfo.clear_color = { 0.3f, 0.3f, 0.3f, 1.0f };
+  colorTargetInfo.clear_color = {0.3f, 0.3f, 0.3f, 1.0f};
   colorTargetInfo.load_op = SDL_GPU_LOADOP_CLEAR;
   colorTargetInfo.store_op = SDL_GPU_STOREOP_STORE;
   colorTargetInfo.texture = swapchainTexture;
 
   // Begin render pass
-  SDL_GPURenderPass *renderPass = SDL_BeginGPURenderPass(
-    commandBuffer, &colorTargetInfo, 1, nullptr);
+  SDL_GPURenderPass *renderPass =
+      SDL_BeginGPURenderPass(commandBuffer, &colorTargetInfo, 1, nullptr);
 
   // ==== Draw ====
 
@@ -207,7 +211,7 @@ inline void draw(const ui::Window* window,
   // Bind vertex buffer
   SDL_GPUBufferBinding bufferBindings[1];
   bufferBindings[0].buffer = drawPipeline.vertexBuffer;
-  bufferBindings[0]. offset = 0;
+  bufferBindings[0].offset = 0;
 
   SDL_BindGPUVertexBuffers(renderPass, 0, bufferBindings, 1);
 
@@ -223,7 +227,8 @@ inline void draw(const ui::Window* window,
   SDL_SubmitGPUCommandBuffer(commandBuffer);
 }
 
-bool ui::updateWindow(const Window* window, const DrawPipeline& drawPipeline) {
+bool ui::updateWindow(const Window *window, const DrawPipeline &drawPipeline)
+{
   SDL_Event event;
 
   while (SDL_PollEvent(&event)) {

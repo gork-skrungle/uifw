@@ -3,16 +3,15 @@
 #include "UI/GFX/Shader.hpp"
 #include "UI/Window/Window.hpp"
 
-int main() {
+int main()
+{
   ui::initPlatform();
 
   ui::Window window = {};
   ui::initializeWindow("SDL Window", 1280, 720, &window);
 
   const ui::Shader shader = ui::createShader(
-      "res/shaders/triangle.vs.spv",
-      "res/shaders/triangle.fs.spv",
-      window);
+      "res/shaders/triangle.vs.spv", "res/shaders/triangle.fs.spv", window);
 
   const ui::DrawPipeline pipeline = ui::createDrawPipeline(window, shader);
 

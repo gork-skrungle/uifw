@@ -1,3 +1,9 @@
 [submodule "extern/SDL3"]
 	path = extern/SDL3
 	url = https://github.com/libsdl-org/SDL.git
+[submodule "extern/flecs"]
+	path = extern/flecs
+	url = https://github.com/SanderMertens/flecs.git
+[submodule "extern/doctest"]
+	path = extern/doctest
+	url = https://github.com/doctest/doctest.git
