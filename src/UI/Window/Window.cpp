@@ -144,6 +144,21 @@ ui::DrawPipeline ui::createDrawPipeline(const Window &window,
   return drawPipeline;
 }
 
+ui::Rect ui::getWindowBounds(const Window *window)
+{
+  int x, y, width, height;
+
+  SDL_GetWindowPosition(window->ptr, &x, &y);
+  SDL_GetWindowSize(window->ptr, &width, &height);
+
+  return Rect {
+    .x = static_cast<float>(x),
+    .y = static_cast<float>(y),
+    .width = static_cast<float>(width),
+    .height = static_cast<float>(height)
+  };
+}
+
 void ui::initializeWindow(const char *title,
                           const int width,
                           const int height,
@@ -171,6 +186,11 @@ void ui::initializeWindow(const char *title,
 
   SDL_Log(" > Device backend: %s\n", SDL_GetGPUDeviceDriver(window->gpuDevice));
   SDL_ClaimWindowForGPUDevice(window->gpuDevice, window->ptr);
+
+  // Create ui::Canvas
+  const Rect bounds = getWindowBounds(window);
+  window->canvas = createCanvas(&window->ecsRoot, bounds.x, bounds.y,
+                                bounds.width, bounds.height, "Canvas");
 }
 
 inline void draw(const ui::Window *window, const ui::DrawPipeline &drawPipeline)

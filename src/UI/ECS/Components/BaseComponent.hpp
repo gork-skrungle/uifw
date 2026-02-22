@@ -4,10 +4,11 @@
 
 namespace ui::ecs {
 
-struct BaseComponents {
+struct BaseComponent {
   Rect rect;
   float zOrder;
   bool inLayout;
+  bool needsUpdate;
 };
 
 }

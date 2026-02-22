@@ -2,3 +2,4 @@
 #include <doctest/doctest.h>
 
 #include "ECS/ECSTest.hpp"
+#include "ECS/CanvasTest.hpp"

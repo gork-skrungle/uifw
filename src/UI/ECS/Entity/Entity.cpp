@@ -1,5 +1,5 @@
 #include "Entity.hpp"
-#include "UI/ECS/Components/BaseComponents.hpp"
+#include "UI/ECS/Components/BaseComponent.hpp"
 
 ui::ecs::Entity ui::ecs::createEntity(const ECSRoot *root,
                                       const float x,
@@ -10,10 +10,11 @@ ui::ecs::Entity ui::ecs::createEntity(const ECSRoot *root,
 {
   const Entity entity = root->world.entity(name);
 
-  entity.set<BaseComponents>({
+  entity.set<BaseComponent>({
     .rect = {x, y, width, height},
     .zOrder = 0.0f,
     .inLayout = false,
+    .needsUpdate = true
   });
 
   return entity;

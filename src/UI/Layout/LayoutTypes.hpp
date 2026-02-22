@@ -17,18 +17,19 @@ struct LayoutPadding
   float left;
 };
 
-struct LayoutParams
-{
-  LayoutPadding margins;
-  LayoutPadding padding;
-};
-
 struct Rect
 {
   float x;
   float y;
   float width;
   float height;
+};
+
+struct LayoutComponent
+{
+  LayoutType type;
+  LayoutPadding margins;
+  LayoutPadding padding;
 };
 
 }

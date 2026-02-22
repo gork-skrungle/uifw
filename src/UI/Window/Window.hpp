@@ -1,6 +1,10 @@
 #pragma once
 
+#include "UI/Canvas/Canvas.hpp"
+
 #include <SDL3/SDL.h>
+
+#include "UI/Layout/LayoutTypes.hpp"
 
 namespace ui {
 
@@ -8,15 +12,17 @@ struct Shader;
 
 struct Window
 {
-  SDL_Window *ptr;
-  SDL_GPUDevice *gpuDevice;
+  SDL_Window *ptr = nullptr;
+  SDL_GPUDevice *gpuDevice = nullptr;
+  Canvas canvas;
+  ecs::ECSRoot ecsRoot;
 };
 
 struct DrawPipeline
 {
-  SDL_GPUBuffer *vertexBuffer;
-  SDL_GPUTransferBuffer *transferBuffer;
-  SDL_GPUGraphicsPipeline *graphicsPipeline;
+  SDL_GPUBuffer *vertexBuffer = nullptr;
+  SDL_GPUTransferBuffer *transferBuffer = nullptr;
+  SDL_GPUGraphicsPipeline *graphicsPipeline = nullptr;
 };
 
 struct Vertex
@@ -33,6 +39,11 @@ void initPlatform();
 
 [[nodiscard]] DrawPipeline createDrawPipeline(const Window &window,
                                               const Shader &shader);
+
+[[nodiscard]] Rect getWindowBounds(const Window *window);
+
+[[nodiscard]] Canvas createCanvasForWindow(const Window &window,
+                                           const ecs::ECSRoot *root);
 
 void initializeWindow(const char *title, int width, int height, Window *window);
 

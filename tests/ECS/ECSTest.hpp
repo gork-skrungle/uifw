@@ -2,13 +2,36 @@
 
 #include <doctest/doctest.h>
 
+#include <UI/ECS/Components/BaseComponent.hpp>
 #include <UI/ECS/ECSRoot/ECSRoot.hpp>
 #include <UI/ECS/Entity/Entity.hpp>
-#include <UI/ECS/Components/BaseComponents.hpp>
 
 #include <cstring>
 
 using namespace ui;
+
+TEST_CASE("Defaults")
+{
+  ecs::ECSRoot root;
+  const ecs::Entity entity =
+      ecs::createEntity(&root, 0.0f, 0.0f, 256.0f, 256.0f);
+
+  CHECK(entity.has<ecs::BaseComponent>() == true);
+
+  const auto component = entity.get<ecs::BaseComponent>();
+
+  CHECK(component.rect.x == 0.0f);
+  CHECK(component.rect.y == 0.0f);
+  CHECK(component.rect.width == 256.0f);
+  CHECK(component.rect.height == 256.0f);
+
+  CHECK(component.zOrder == 0.0f);
+  CHECK(component.inLayout == false);
+  CHECK(component.needsUpdate == true);
+
+  const char* entityName = entity.name();
+  CHECK(strcmp(entityName, "") == 0);
+}
 
 TEST_CASE("Basic entity")
 {
@@ -23,10 +46,10 @@ TEST_CASE("Basic entity")
   const ecs::Entity entity =
       ecs::createEntity(&root, X, Y, WIDTH, HEIGHT, NAME);
 
-  CHECK(entity.has<ecs::BaseComponents>() == true);
+  CHECK(entity.has<ecs::BaseComponent>() == true);
 
   // Get and check data
-  const auto component = entity.get<ecs::BaseComponents>();
+  const auto component = entity.get<ecs::BaseComponent>();
   CHECK(component.rect.x == X);
   CHECK(component.rect.y == Y);
   CHECK(component.rect.width == WIDTH);
@@ -38,7 +61,7 @@ TEST_CASE("Basic entity")
   constexpr float WIDTH_2 = WIDTH * 2.0f;
   constexpr float HEIGHT_2 = HEIGHT * 2.0f;
 
-  auto mutComponent = entity.get_ref<ecs::BaseComponents>();
+  auto mutComponent = entity.get_ref<ecs::BaseComponent>();
   mutComponent->rect.x = X_2;
   mutComponent->rect.y = Y_2;
   mutComponent->rect.width = WIDTH_2;
@@ -54,8 +77,8 @@ TEST_CASE("Basic entity")
   CHECK(strcmp(entityName, NAME) == 0);
 
   // Remove component
-  entity.remove<ecs::BaseComponents>();
-  CHECK(entity.has<ecs::BaseComponents>() == false);
+  entity.remove<ecs::BaseComponent>();
+  CHECK(entity.has<ecs::BaseComponent>() == false);
 }
 
 TEST_CASE("Multiple components")
@@ -79,14 +102,14 @@ TEST_CASE("Multiple components")
       ecs::createEntity(&root, X, Y, WIDTH, HEIGHT, NAME_3);
 
   // Check components
-  CHECK(entity1.has<ecs::BaseComponents>() == true);
-  CHECK(entity2.has<ecs::BaseComponents>() == true);
-  CHECK(entity3.has<ecs::BaseComponents>() == true);
+  CHECK(entity1.has<ecs::BaseComponent>() == true);
+  CHECK(entity2.has<ecs::BaseComponent>() == true);
+  CHECK(entity3.has<ecs::BaseComponent>() == true);
 
   auto checkValues = [X, Y, WIDTH, HEIGHT](const ecs::Entity& entity) {
-    CHECK(entity.has<ecs::BaseComponents>() == true);
+    CHECK(entity.has<ecs::BaseComponent>() == true);
 
-    const auto component = entity.get<ecs::BaseComponents>();
+    const auto component = entity.get<ecs::BaseComponent>();
 
     CHECK(component.rect.x == X);
     CHECK(component.rect.y == Y);

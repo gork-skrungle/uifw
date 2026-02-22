@@ -7,7 +7,7 @@ int main()
 {
   ui::initPlatform();
 
-  ui::Window window = {};
+  ui::Window window;
   ui::initializeWindow("SDL Window", 1280, 720, &window);
 
   const ui::Shader shader = ui::createShader("res/shaders/triangle.vs.spv",

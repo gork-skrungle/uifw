@@ -17,7 +17,7 @@ add_library(uifw STATIC
   src/UI/ECS/ECSRoot/ECSRoot.hpp
   src/UI/ECS/Entity/Entity.cpp
   src/UI/ECS/Entity/Entity.hpp
-  src/UI/ECS/Components/BaseComponents.hpp
+  src/UI/ECS/Components/BaseComponent.hpp
 )
 
 target_link_libraries(uifw PUBLIC
