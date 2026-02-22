@@ -29,7 +29,7 @@ TEST_CASE("Defaults")
   CHECK(component.inLayout == false);
   CHECK(component.needsUpdate == true);
 
-  const char* entityName = entity.name();
+  const char *entityName = entity.name();
   CHECK(strcmp(entityName, "") == 0);
 }
 
@@ -73,7 +73,7 @@ TEST_CASE("Basic entity")
   CHECK(mutComponent->rect.height == HEIGHT_2);
 
   // Check name
-  const char* entityName = entity.name();
+  const char *entityName = entity.name();
   CHECK(strcmp(entityName, NAME) == 0);
 
   // Remove component
@@ -106,7 +106,7 @@ TEST_CASE("Multiple components")
   CHECK(entity2.has<ecs::BaseComponent>() == true);
   CHECK(entity3.has<ecs::BaseComponent>() == true);
 
-  auto checkValues = [X, Y, WIDTH, HEIGHT](const ecs::Entity& entity) {
+  auto checkValues = [X, Y, WIDTH, HEIGHT](const ecs::Entity &entity) {
     CHECK(entity.has<ecs::BaseComponent>() == true);
 
     const auto component = entity.get<ecs::BaseComponent>();
@@ -122,11 +122,65 @@ TEST_CASE("Multiple components")
   checkValues(entity3);
 
   // Check names
-  const char* entity1Name = entity1.name();
-  const char* entity2Name = entity2.name();
-  const char* entity3Name = entity3.name();
+  const char *entity1Name = entity1.name();
+  const char *entity2Name = entity2.name();
+  const char *entity3Name = entity3.name();
 
   CHECK(strcmp(entity1Name, NAME_1) == 0);
   CHECK(strcmp(entity2Name, NAME_2) == 0);
   CHECK(strcmp(entity3Name, NAME_3) == 0);
+}
+
+TEST_CASE("Transform hierarchy")
+{
+  constexpr float X = 15.0f;
+  constexpr float Y = 20.0f;
+  constexpr float WIDTH = 250.0f;
+  constexpr float HEIGHT = 350.0f;
+
+  const char *PARENT_NAME = "Parent";
+  const char *CHILD_1_NAME = "Child1";
+  const char *CHILD_2_NAME = "Child2";
+  const char *CHILD_3_NAME = "Child3";
+
+  ecs::ECSRoot root;
+
+  const ecs::Entity parent =
+      ecs::createEntity(&root, X, Y, WIDTH, HEIGHT, PARENT_NAME);
+
+  ecs::createEntity(&root, X, Y, WIDTH, HEIGHT, CHILD_1_NAME, &parent);
+  ecs::createEntity(&root, X, Y, WIDTH, HEIGHT, CHILD_2_NAME, &parent);
+  ecs::createEntity(&root, X, Y, WIDTH, HEIGHT, CHILD_3_NAME, &parent);
+
+  // Check parent properties
+  const auto parentRel = parent.get<ecs::BaseComponent>().transformRelationship;
+
+  CHECK(parentRel.nChildren == 3);
+  CHECK(parent.name() == PARENT_NAME);
+
+  // Check children properties
+  const auto child1Entity = parentRel.first;
+  const auto child1Rel =
+      child1Entity.get<ecs::BaseComponent>().transformRelationship;
+
+  CHECK(child1Rel.nChildren == 0);
+  CHECK(child1Rel.prev == UI_NULL_ENTITY);
+  CHECK_EQ(child1Entity.name(), CHILD_1_NAME);
+
+  const auto child2Entity = child1Rel.next;
+  const auto child2Rel =
+      child2Entity.get<ecs::BaseComponent>().transformRelationship;
+
+  CHECK(child2Rel.nChildren == 0);
+  CHECK_EQ(child2Rel.prev.name(), child1Entity.name());
+  CHECK_EQ(child2Entity.name(), CHILD_2_NAME);
+
+  const auto child3Entity = child2Rel.next;
+  const auto child3Rel =
+      child3Entity.get<ecs::BaseComponent>().transformRelationship;
+
+  CHECK(child3Rel.nChildren == 0);
+  CHECK_EQ(child3Rel.prev.name(), child2Entity.name());
+  CHECK(child3Rel.next == UI_NULL_ENTITY);
+  CHECK_EQ(child3Entity.name(), CHILD_3_NAME);
 }

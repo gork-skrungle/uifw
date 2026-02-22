@@ -3,6 +3,7 @@ project(sdl3-ui-test)
 
 add_subdirectory(extern)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 20)
 
 add_library(uifw STATIC

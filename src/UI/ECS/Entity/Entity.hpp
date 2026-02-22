@@ -4,6 +4,8 @@
 
 #include <flecs.h>
 
+#define UI_NULL_ENTITY flecs::entity::null()
+
 namespace ui::ecs {
 
 typedef flecs::entity Entity;
@@ -13,6 +15,7 @@ Entity createEntity(const ECSRoot *root,
                     float y,
                     float width = 128.0f,
                     float height = 128.0f,
-                    const char *name = "");
+                    const char *name = "",
+                    const Entity *parent = nullptr);
 
 }  // namespace ui::ecs
