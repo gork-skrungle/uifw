@@ -31,6 +31,7 @@ target_include_directories(uifw PUBLIC
 
 add_executable(sdl3-ui-test
   main.cpp
+  src/UI/Layout/LayoutTypes.hpp
 )
 
 target_link_libraries(sdl3-ui-test PRIVATE

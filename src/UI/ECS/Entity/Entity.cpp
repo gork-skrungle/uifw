@@ -1,4 +1,5 @@
 #include "Entity.hpp"
+#include "UI/ECS/Components/BaseComponents.hpp"
 
 ui::ecs::Entity ui::ecs::createEntity(const ECSRoot *root,
                                       const float x,
@@ -7,13 +8,13 @@ ui::ecs::Entity ui::ecs::createEntity(const ECSRoot *root,
                                       const float height,
                                       const char *name)
 {
-  const flecs::entity entity = root->world.entity(name);
-  entity.set<BaseComponents>({x, y, width, height});
+  const Entity entity = root->world.entity(name);
 
-  return Entity{entity};
-}
+  entity.set<BaseComponents>({
+    .rect = {x, y, width, height},
+    .zOrder = 0.0f,
+    .inLayout = false,
+  });
 
-const char *ui::ecs::getName(const Entity entity)
-{
-  return entity.entity.name().c_str();
+  return entity;
 }

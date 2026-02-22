@@ -1,12 +1,13 @@
 #pragma once
 
+#include "UI/Layout/LayoutTypes.hpp"
+
 namespace ui::ecs {
 
 struct BaseComponents {
-  float x;
-  float y;
-  float width;
-  float height;
+  Rect rect;
+  float zOrder;
+  bool inLayout;
 };
 
 }

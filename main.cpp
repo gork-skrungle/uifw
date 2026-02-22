@@ -10,8 +10,9 @@ int main()
   ui::Window window = {};
   ui::initializeWindow("SDL Window", 1280, 720, &window);
 
-  const ui::Shader shader = ui::createShader(
-      "res/shaders/triangle.vs.spv", "res/shaders/triangle.fs.spv", window);
+  const ui::Shader shader = ui::createShader("res/shaders/triangle.vs.spv",
+                                             "res/shaders/triangle.fs.spv",
+                                             window);
 
   const ui::DrawPipeline pipeline = ui::createDrawPipeline(window, shader);
 
@@ -21,5 +22,5 @@ int main()
     }
   }
 
-  return 0;
+  return EXIT_SUCCESS;
 }
