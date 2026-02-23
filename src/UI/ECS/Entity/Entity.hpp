@@ -5,6 +5,7 @@
 #include <flecs.h>
 
 #define UI_NULL_ENTITY flecs::entity::null()
+#define UI_REF(T) flecs::ref<T>
 
 namespace ui::ecs {
 

@@ -19,6 +19,8 @@ add_library(uifw STATIC
   src/UI/ECS/Entity/Entity.cpp
   src/UI/ECS/Entity/Entity.hpp
   src/UI/ECS/Components/BaseComponent.hpp
+  src/UI/Layout/LayoutHelpers.cpp
+  src/UI/Layout/LayoutHelpers.hpp
 )
 
 target_link_libraries(uifw PUBLIC
@@ -33,6 +35,8 @@ target_include_directories(uifw PUBLIC
 add_executable(sdl3-ui-test
   main.cpp
   src/UI/Layout/LayoutTypes.hpp
+  src/UI/Layout/LayoutHelpers.cpp
+  src/UI/Layout/LayoutHelpers.hpp
 )
 
 target_link_libraries(sdl3-ui-test PRIVATE

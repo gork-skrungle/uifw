@@ -17,17 +17,16 @@ Canvas ui::createCanvas(const ecs::ECSRoot *root,
   entity.set<LayoutComponent>({
     .type = LayoutType_Vertical,
     .margins = {
-      .top = 0,
-      .right = 0,
-      .bottom = 0,
-      .left = 0,
+      .top = 0.0f,
+      .right = 0.0f,
+      .bottom = 0.0f,
+      .left = 0.0f,
     },
-    .padding = {
-      .top = 0,
-      .right = 0,
-      .bottom = 0,
-      .left = 0,
-    }
+    .spacing = 0.0f,
+    .minWidth = 0.0f,
+    .minHeight = 0.0f,
+    .maxWidth = std::numeric_limits<float>::max(),
+    .maxHeight = std::numeric_limits<float>::max(),
   });
 
   return Canvas{entity};

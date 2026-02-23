@@ -10,12 +10,12 @@ inline ui::ecs::Entity find_last_child(
 
   auto currentEntity = firstChild;
   auto currentRel =
-      currentEntity.get<ui::ecs::BaseComponent>().transformRelationship;
+      currentEntity.get<ui::ecs::BaseComponent>().transformRel;
 
   while (currentRel.next != UI_NULL_ENTITY) {
     currentEntity = currentRel.next;
     currentRel =
-        currentEntity.get<ui::ecs::BaseComponent>().transformRelationship;
+        currentEntity.get<ui::ecs::BaseComponent>().transformRel;
   }
 
   return currentEntity;
@@ -37,8 +37,8 @@ ui::ecs::Entity ui::ecs::createEntity(const ECSRoot *root,
                              .needsUpdate = true});
 
   if (parent != nullptr) {
-    auto &parentRel = parent->get_ref<BaseComponent>()->transformRelationship;
-    auto &entityRel = entity.get_ref<BaseComponent>()->transformRelationship;
+    auto &parentRel = parent->get_ref<BaseComponent>()->transformRel;
+    auto &entityRel = entity.get_ref<BaseComponent>()->transformRel;
 
     entityRel.parent = *parent;
 
@@ -46,7 +46,7 @@ ui::ecs::Entity ui::ecs::createEntity(const ECSRoot *root,
       // Add child to existing children list
       const auto lastChild = find_last_child(parentRel);
       auto &lastChildRel =
-          lastChild.get_ref<BaseComponent>()->transformRelationship;
+          lastChild.get_ref<BaseComponent>()->transformRel;
 
       lastChildRel.next = entity;
       entityRel.prev = lastChild;

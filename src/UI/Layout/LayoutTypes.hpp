@@ -9,7 +9,7 @@ enum LayoutType
   LayoutType_Vertical
 };
 
-struct LayoutPadding
+struct LayoutMargins
 {
   float top;
   float right;
@@ -28,8 +28,13 @@ struct Rect
 struct LayoutComponent
 {
   LayoutType type;
-  LayoutPadding margins;
-  LayoutPadding padding;
+  LayoutMargins margins;
+  float spacing;
+
+  float minWidth;
+  float minHeight;
+  float maxWidth;
+  float maxHeight;
 };
 
 }

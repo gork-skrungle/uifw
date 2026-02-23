@@ -5,6 +5,7 @@
 #include <UI/ECS/Components/BaseComponent.hpp>
 #include <UI/ECS/ECSRoot/ECSRoot.hpp>
 #include <UI/ECS/Entity/Entity.hpp>
+#include <UI/Layout/LayoutHelpers.hpp>
 
 #include <cstring>
 
@@ -153,7 +154,7 @@ TEST_CASE("Transform hierarchy")
   ecs::createEntity(&root, X, Y, WIDTH, HEIGHT, CHILD_3_NAME, &parent);
 
   // Check parent properties
-  const auto parentRel = parent.get<ecs::BaseComponent>().transformRelationship;
+  const auto parentRel = parent.get<ecs::BaseComponent>().transformRel;
 
   CHECK(parentRel.nChildren == 3);
   CHECK(parent.name() == PARENT_NAME);
@@ -161,7 +162,7 @@ TEST_CASE("Transform hierarchy")
   // Check children properties
   const auto child1Entity = parentRel.first;
   const auto child1Rel =
-      child1Entity.get<ecs::BaseComponent>().transformRelationship;
+      child1Entity.get<ecs::BaseComponent>().transformRel;
 
   CHECK(child1Rel.nChildren == 0);
   CHECK(child1Rel.prev == UI_NULL_ENTITY);
@@ -169,7 +170,7 @@ TEST_CASE("Transform hierarchy")
 
   const auto child2Entity = child1Rel.next;
   const auto child2Rel =
-      child2Entity.get<ecs::BaseComponent>().transformRelationship;
+      child2Entity.get<ecs::BaseComponent>().transformRel;
 
   CHECK(child2Rel.nChildren == 0);
   CHECK_EQ(child2Rel.prev.name(), child1Entity.name());
@@ -177,7 +178,7 @@ TEST_CASE("Transform hierarchy")
 
   const auto child3Entity = child2Rel.next;
   const auto child3Rel =
-      child3Entity.get<ecs::BaseComponent>().transformRelationship;
+      child3Entity.get<ecs::BaseComponent>().transformRel;
 
   CHECK(child3Rel.nChildren == 0);
   CHECK_EQ(child3Rel.prev.name(), child2Entity.name());

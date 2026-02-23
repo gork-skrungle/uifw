@@ -15,8 +15,14 @@ struct TransformRelationship
 };
 
 struct BaseComponent {
+  TransformRelationship transformRel = {};
+
   Rect rect = { 0.0f, 0.0f, 128.0f, 128.0f };
-  TransformRelationship transformRelationship = {};
+  float minWidth = 0.0f;
+  float minHeight = 0.0f;
+  float maxWidth = std::numeric_limits<float>::max();
+  float maxHeight = std::numeric_limits<float>::max();
+
   float zOrder = 0.0f;
   bool inLayout = false;
   bool needsUpdate = true;
