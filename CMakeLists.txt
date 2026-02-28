@@ -50,9 +50,7 @@ target_link_libraries(sdl3-ui-test PRIVATE
 
 add_subdirectory(tests)
 
-
-
-# Copy res/ directory
+# Compile shaders using SDL_shadercross (user install required)
 add_custom_command(TARGET sdl3-ui-test
   TARGET sdl3-ui-test
   POST_BUILD
@@ -61,6 +59,7 @@ add_custom_command(TARGET sdl3-ui-test
   COMMENT "Compiling Shaders..."
 )
 
+# Copy res/ directory
 add_custom_command(
   TARGET sdl3-ui-test
   POST_BUILD

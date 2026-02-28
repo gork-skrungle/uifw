@@ -188,9 +188,12 @@ void ui::draw(const Window *window)
   // Setup camera matrix
   const Rect windowBounds = getWindowBounds(window);
 
-  const glm::mat4 cameraMatrix =
-      glm::ortho(0.0f, static_cast<float>(windowBounds.width),
-                 static_cast<float>(windowBounds.height), 0.0f);
+  const glm::mat4 cameraMatrix = glm::orthoZO(
+    0.0f,
+    static_cast<float>(windowBounds.width),
+    static_cast<float>(windowBounds.height),
+    0.0f, -1000.0f, 1000.0f
+  );
 
   // Get command buffer
   auto *gpuDevice = window->renderer.internals.gpuDevice;

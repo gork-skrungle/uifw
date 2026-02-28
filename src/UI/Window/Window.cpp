@@ -62,6 +62,9 @@ void ui::initializeWindow(const char *title,
   
   // Create ui::Renderer
   window->renderer = ui::createRenderer(window, &window->canvas);
+
+  // Layout on first frame
+  window->needsRelayout = true;
 }
 
 inline void relayout(const ui::Window *window)

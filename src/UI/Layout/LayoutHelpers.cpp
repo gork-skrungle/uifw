@@ -145,6 +145,7 @@ void layoutChildren(const ecs::Entity &parent)
       default: break;
     }
     children[i]->needsUpdate = false;
+    currentPosition += computedSizes[i] + spacing;
   }
 }
 
