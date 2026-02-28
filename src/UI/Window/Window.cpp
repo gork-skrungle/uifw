@@ -62,18 +62,20 @@ void ui::initializeWindow(const char *title,
   
   // Create ui::Renderer
   window->renderer = ui::createRenderer(window, &window->canvas);
-
-  // Layout on first frame
-  window->needsRelayout = true;
 }
 
-inline void relayout(const ui::Window *window)
+void ui::relayout(const Window *window)
 {
   const auto windowBounds = ui::getWindowBounds(window);
   const auto canvasRoot = window->canvas.entity;
 
   auto baseComponent = canvasRoot.get_ref<ui::ecs::BaseComponent>();
-  baseComponent->rect = windowBounds;
+  baseComponent->rect = {
+    .x = 0,
+    .y = 0,
+    .width = windowBounds.width,
+    .height = windowBounds.height
+  };
 
   ui::layoutChildren(canvasRoot);
 }

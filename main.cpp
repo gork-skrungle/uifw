@@ -10,7 +10,9 @@ int main()
   ui::Window window;
   ui::initializeWindow("SDL3 Window", 1280, 720, &window);
 
+  /* ---------------------------- Setup scene ---------------------------- */
   auto layoutComponent = window.canvas.entity.get_ref<ui::LayoutComponent>();
+
   layoutComponent->type = ui::LayoutType_Horizontal;
   layoutComponent->margins = { 10, 10, 10, 10 };
   layoutComponent->spacing = 10;
@@ -39,6 +41,7 @@ int main()
   e1.get_ref<ui::ecs::QuadRenderer>()->color = red;
   e2.get_ref<ui::ecs::QuadRenderer>()->color = green;
   e3.get_ref<ui::ecs::QuadRenderer>()->color = blue;
+  /* --------------------------------------------------------------------- */
 
   while (true) {
     if (!ui::updateWindow(&window)) {

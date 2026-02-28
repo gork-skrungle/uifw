@@ -27,6 +27,8 @@ void initPlatform();
 
 void initializeWindow(const char *title, int width, int height, Window *window);
 
+void relayout(const Window *window);
+
 bool updateWindow(Window *window);
 
 }  // namespace ui
