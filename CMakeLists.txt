@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 4.0)
 project(sdl3-ui-test)
 
 add_subdirectory(extern)
@@ -26,6 +26,7 @@ add_library(uifw STATIC
 target_link_libraries(uifw PUBLIC
   flecs
   SDL3::SDL3-static
+  glm::glm
 )
 
 target_include_directories(uifw PUBLIC
@@ -37,6 +38,10 @@ add_executable(sdl3-ui-test
   src/UI/Layout/LayoutTypes.hpp
   src/UI/Layout/LayoutHelpers.cpp
   src/UI/Layout/LayoutHelpers.hpp
+  src/UI/ECS/Components/RenderingComponents.hpp
+  src/UI/GFX/Renderer/Renderer.cpp
+  src/UI/GFX/Renderer/Renderer.hpp
+  src/UI/GFX/Renderer/RendererTypes.hpp
 )
 
 target_link_libraries(sdl3-ui-test PRIVATE
@@ -44,3 +49,14 @@ target_link_libraries(sdl3-ui-test PRIVATE
 )
 
 add_subdirectory(tests)
+
+# Copy res/ directory
+add_custom_command(
+  TARGET sdl3-ui-test
+  POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy_directory
+    "${CMAKE_CURRENT_SOURCE_DIR}/res"
+    "$<TARGET_FILE_DIR:sdl3-ui-test>/res"
+  COMMENT "\n\n => Copying assets to build directory...\nDone.\n"
+  VERBATIM
+)

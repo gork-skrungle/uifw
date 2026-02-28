@@ -2,20 +2,28 @@
 
 #include <SDL3/SDL.h>
 
+#include "UI/GFX/Renderer/Renderer.hpp"
+
 namespace ui {
 
 struct Window;
 
-struct Shader
+enum ShaderStage
 {
-  SDL_GPUShader *vertexShader = nullptr;
-  SDL_GPUShader *fragmentShader = nullptr;
+  ShaderStage_Vertex,
+  ShaderStage_Fragment,
 };
 
-Shader createShader(const char *vertexPath,
-                    const char *fragmentPath,
-                    const Window &window);
+typedef SDL_GPUShader Shader;
 
-void destroyShader(const Shader &shader, const Window &window);
+Shader *createShader(const Renderer *renderer,
+                     const char *bytecodePath,
+                     ShaderStage stage,
+                     uint32_t samplerCount,
+                     uint32_t uniformBufferCount,
+                     uint32_t storageBufferCount,
+                     uint32_t storageTextureCount);
+
+void destroyShader(Shader *shader, const Renderer *renderer);
 
 }  // namespace ui
