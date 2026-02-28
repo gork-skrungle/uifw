@@ -50,13 +50,23 @@ target_link_libraries(sdl3-ui-test PRIVATE
 
 add_subdirectory(tests)
 
+
+
 # Copy res/ directory
+add_custom_command(TARGET sdl3-ui-test
+  TARGET sdl3-ui-test
+  POST_BUILD
+  COMMAND bash ${CMAKE_SOURCE_DIR}/res/shaders/compile_shaders.sh
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/res/shaders
+  COMMENT "Compiling Shaders..."
+)
+
 add_custom_command(
   TARGET sdl3-ui-test
   POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy_directory
-    "${CMAKE_CURRENT_SOURCE_DIR}/res"
+    "${CMAKE_SOURCE_DIR}/res"
     "$<TARGET_FILE_DIR:sdl3-ui-test>/res"
-  COMMENT "\n\n => Copying assets to build directory...\nDone.\n"
+  COMMENT "Copying assets to build directory..."
   VERBATIM
 )

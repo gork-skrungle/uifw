@@ -3,10 +3,13 @@
 #include "UI/Canvas/Canvas.hpp"
 #include "UI/GFX/Renderer/Renderer.hpp"
 #include "UI/GFX/Shader.hpp"
+#include "UI/Layout/LayoutHelpers.hpp"
 
 #include <SDL3/SDL_gpu.h>
 
 #include <stdexcept>
+
+#include "UI/ECS/Components/BaseComponent.hpp"
 
 void ui::initPlatform()
 {
@@ -61,18 +64,37 @@ void ui::initializeWindow(const char *title,
   window->renderer = ui::createRenderer(window, &window->canvas);
 }
 
-bool ui::updateWindow(const Window *window)
+inline void relayout(const ui::Window *window)
+{
+  const auto windowBounds = ui::getWindowBounds(window);
+  const auto canvasRoot = window->canvas.entity;
+
+  auto baseComponent = canvasRoot.get_ref<ui::ecs::BaseComponent>();
+  baseComponent->rect = windowBounds;
+
+  ui::layoutChildren(canvasRoot);
+}
+
+bool ui::updateWindow(Window *window)
 {
   SDL_Event event;
 
   while (SDL_PollEvent(&event)) {
     switch (event.type) {
+      case SDL_EVENT_WINDOW_RESIZED:
+        window->needsRelayout = true;
+        break;
       case SDL_EVENT_QUIT:
         SDL_DestroyWindow(window->ptr);
         return false;
       default:
         break;
     }
+  }
+
+  if (window->needsRelayout) {
+    relayout(window);
+    window->needsRelayout = false;
   }
 
   ui::draw(window);

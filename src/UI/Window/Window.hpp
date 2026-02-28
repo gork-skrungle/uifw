@@ -15,6 +15,7 @@ struct Window
   Renderer renderer;
   Canvas canvas;
   ecs::ECSRoot ecsRoot;
+  bool needsRelayout = true;
 };
 
 void initPlatform();
@@ -26,6 +27,6 @@ void initPlatform();
 
 void initializeWindow(const char *title, int width, int height, Window *window);
 
-bool updateWindow(const Window *window);
+bool updateWindow(Window *window);
 
 }  // namespace ui
