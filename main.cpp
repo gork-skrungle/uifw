@@ -2,13 +2,18 @@
 #include "UI/ECS/Components/RenderingComponents.hpp"
 #include "UI/GFX/Shader.hpp"
 #include "UI/Window/Window.hpp"
+#include "UI/IO/Text/FontLoader.hpp"
 
 int main()
 {
   ui::initPlatform();
 
   ui::Window window;
-  ui::initializeWindow("SDL3 Window", 1280, 720, &window);
+  ui::initializeWindow("UIFW Window", 1280, 720, &window);
+
+  ui::FontData fontData =
+      ui::FontLoader::loadFont("res/fonts/_generated/JetBrainsMono.png",
+                               "res/fonts/_generated/JetBrainsMono.json");
 
   /* ---------------------------- Setup scene ---------------------------- */
   auto layoutComponent = window.canvas.entity.get_ref<ui::LayoutComponent>();

@@ -27,6 +27,7 @@ target_link_libraries(uifw PUBLIC
   flecs
   SDL3::SDL3-static
   glm::glm
+  nlohmann_json::nlohmann_json
 )
 
 target_include_directories(uifw PUBLIC
@@ -42,6 +43,10 @@ add_executable(sdl3-ui-test
   src/UI/GFX/Renderer/Renderer.cpp
   src/UI/GFX/Renderer/Renderer.hpp
   src/UI/GFX/Renderer/RendererTypes.hpp
+  src/UI/ECS/Components/FontComponents.hpp
+  src/UI/GFX/Renderer/Text/TextTypes.hpp
+  src/UI/IO/Text/FontLoader.cpp
+  src/UI/IO/Text/FontLoader.hpp
 )
 
 target_link_libraries(sdl3-ui-test PRIVATE

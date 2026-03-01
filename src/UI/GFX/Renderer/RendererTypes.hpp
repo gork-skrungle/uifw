@@ -4,6 +4,12 @@
 
 namespace ui {
 
+struct Vector2i
+{
+  uint16_t x;
+  uint16_t y;
+};
+
 struct Vector2f
 {
   float x;
