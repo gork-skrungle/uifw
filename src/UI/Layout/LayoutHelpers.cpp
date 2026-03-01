@@ -187,15 +187,10 @@ void Layout::clamp_value(uint16_t *value,
                          const uint16_t min,
                          const uint16_t max)
 {
-  if (value == nullptr) {
-    return;
-  }
-
   if (*value < min) {
     *value = min;
   }
-
-  if (*value > max) {
+  else if (*value > max) {
     *value = max;
   }
 }

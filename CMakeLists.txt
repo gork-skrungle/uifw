@@ -59,6 +59,15 @@ add_custom_command(TARGET sdl3-ui-test
   COMMENT "Compiling Shaders..."
 )
 
+# Generate fonts with bundled msdf-atlas-gen
+add_custom_command(TARGET sdl3-ui-test
+  TARGET sdl3-ui-test
+  POST_BUILD
+  COMMAND bash ${CMAKE_SOURCE_DIR}/res/fonts/generate_msdf_font_atlases.sh
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/res/fonts
+  COMMENT "Generating MSDF font atlases..."
+)
+
 # Copy res/ directory
 add_custom_command(
   TARGET sdl3-ui-test
