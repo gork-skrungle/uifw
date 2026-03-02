@@ -1,6 +1,7 @@
 #include "FontLoader.hpp"
 
 #include <nlohmann/json.hpp>
+#include <stb_truetype.h>
 
 #include <fstream>
 
@@ -11,11 +12,15 @@ FontData FontLoader::loadFont(const char *imagePath, const char *jsonPath)
 {
   FontData fontData;
 
-  // TODO: Load image
-  // ...
+  // Store image path reference
+  fontData.imagePath = imagePath;
 
   // Load JSON
   load_JSON_data(jsonPath, &fontData);
+
+  // Print info
+  UI_LOG_MSG("Loaded font: '%s'", fontData.imagePath);
+  UI_LOG_MSG(" > Glyph count: %i", fontData.glyphs.size());
 
   return fontData;
 }
@@ -36,8 +41,7 @@ void FontLoader::load_JSON_data(const char *jsonPath, FontData *fontData)
 
   const auto &fontAtlasType = fontAtlasData["type"].get<std::string>();
   const auto &distanceRange = fontAtlasData["distanceRange"].get<uint16_t>();
-  const auto &distanceRangeMiddle =
-      fontAtlasData["distanceRangeMiddle"].get<uint16_t>();
+  const auto &distanceRangeMiddle = fontAtlasData["distanceRangeMiddle"].get<uint16_t>();
   const auto &size = fontAtlasData["size"].get<float>();
   const auto &width = fontAtlasData["width"].get<uint16_t>();
   const auto &height = fontAtlasData["height"].get<uint16_t>();
@@ -47,7 +51,8 @@ void FontLoader::load_JSON_data(const char *jsonPath, FontData *fontData)
 
   if (fontAtlasType == "msdf") {
     fontAtlasTypeEnum = FontAtlasType_MSDF;
-  } else {
+  }
+  else {
     fontAtlasTypeEnum = FontAtlasType_Unknown;
   }
 
@@ -55,9 +60,11 @@ void FontLoader::load_JSON_data(const char *jsonPath, FontData *fontData)
 
   if (yOrigin == "bottom") {
     yOriginEnum = FontYOrigin_Bottom;
-  } else if (yOrigin == "middle") {
+  }
+  else if (yOrigin == "middle") {
     yOriginEnum = FontYOrigin_Middle;
-  } else {
+  }
+  else {
     yOriginEnum = FontYOrigin_Top;
   }
 
@@ -66,10 +73,11 @@ void FontLoader::load_JSON_data(const char *jsonPath, FontData *fontData)
     .distanceRange = distanceRange,
     .distanceRangeMiddle = distanceRangeMiddle,
     .size = size,
-    .atlasDimensions = {
-      .x = width,
-      .y = height,
-    },
+    .atlasDimensions =
+      {
+        .x = width,
+        .y = height,
+      },
     .yOrigin = yOriginEnum,
   };
 
@@ -81,8 +89,7 @@ void FontLoader::load_JSON_data(const char *jsonPath, FontData *fontData)
   const auto &ascender = fontMetricsData["ascender"].get<float>();
   const auto &descender = fontMetricsData["descender"].get<float>();
   const auto &underlineY = fontMetricsData["underlineY"].get<float>();
-  const auto &underlineThickness =
-      fontMetricsData["underlineThickness"].get<float>();
+  const auto &underlineThickness = fontMetricsData["underlineThickness"].get<float>();
 
   fontData->metrics = {
     .emSize = emSize,
@@ -95,7 +102,6 @@ void FontLoader::load_JSON_data(const char *jsonPath, FontData *fontData)
 
   // Glyph data
   const auto &glyphData = data["glyphs"];
-  fontData->glyphs.resize(glyphData.size());
 
   for (const auto &glyph : glyphData) {
     const auto &index = glyph["index"].get<uint16_t>();
@@ -111,18 +117,20 @@ void FontLoader::load_JSON_data(const char *jsonPath, FontData *fontData)
 
     fontData->glyphs[index] = {
       .advance = advance,
-      .planeBounds = {
-        .left = planeBounds["left"].get<float>(),
-        .bottom = planeBounds["bottom"].get<float>(),
-        .right = planeBounds["right"].get<float>(),
-        .top = planeBounds["top"].get<float>(),
-      },
-      .atlasBounds = {
-        .left = atlasBounds["left"].get<float>(),
-        .bottom = atlasBounds["bottom"].get<float>(),
-        .right = atlasBounds["right"].get<float>(),
-        .top = atlasBounds["top"].get<float>(),
-      },
+      .planeBounds =
+        {
+          .left = planeBounds["left"].get<float>(),
+          .bottom = planeBounds["bottom"].get<float>(),
+          .right = planeBounds["right"].get<float>(),
+          .top = planeBounds["top"].get<float>(),
+        },
+      .atlasBounds =
+        {
+          .left = atlasBounds["left"].get<float>(),
+          .bottom = atlasBounds["bottom"].get<float>(),
+          .right = atlasBounds["right"].get<float>(),
+          .top = atlasBounds["top"].get<float>(),
+        },
     };
   }
 }

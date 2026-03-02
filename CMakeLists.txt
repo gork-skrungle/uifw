@@ -21,24 +21,7 @@ add_library(uifw STATIC
   src/UI/ECS/Components/BaseComponent.hpp
   src/UI/Layout/LayoutHelpers.cpp
   src/UI/Layout/LayoutHelpers.hpp
-)
-
-target_link_libraries(uifw PUBLIC
-  flecs
-  SDL3::SDL3-static
-  glm::glm
-  nlohmann_json::nlohmann_json
-)
-
-target_include_directories(uifw PUBLIC
-  src
-)
-
-add_executable(sdl3-ui-test
-  main.cpp
   src/UI/Layout/LayoutTypes.hpp
-  src/UI/Layout/LayoutHelpers.cpp
-  src/UI/Layout/LayoutHelpers.hpp
   src/UI/ECS/Components/RenderingComponents.hpp
   src/UI/GFX/Renderer/Renderer.cpp
   src/UI/GFX/Renderer/Renderer.hpp
@@ -47,6 +30,24 @@ add_executable(sdl3-ui-test
   src/UI/GFX/Renderer/Text/TextTypes.hpp
   src/UI/IO/Text/FontLoader.cpp
   src/UI/IO/Text/FontLoader.hpp
+  src/UI/GFX/Renderer/Text/TextHelpers.cpp
+  src/UI/GFX/Renderer/Text/TextHelpers.hpp
+)
+
+target_link_libraries(uifw PUBLIC
+  flecs
+  SDL3::SDL3-static
+  glm::glm
+  nlohmann_json::nlohmann_json
+  stb
+)
+
+target_include_directories(uifw PUBLIC
+  src
+)
+
+add_executable(sdl3-ui-test
+  main.cpp
 )
 
 target_link_libraries(sdl3-ui-test PRIVATE

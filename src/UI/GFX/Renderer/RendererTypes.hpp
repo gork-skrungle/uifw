@@ -54,4 +54,13 @@ struct SpriteInstance
   Color4f color;
 };
 
+struct FontGlyphInstance
+{
+  Vector3f position;
+  Vector2f size;
+  UI_PAD_FLOAT(2);
+  Vector4f textureCoords;
+  Color4f color;
+};
+
 }

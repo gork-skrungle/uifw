@@ -13,6 +13,9 @@
 
 #include <vector>
 
+#include "Text/TextTypes.hpp"
+#include "UI/ECS/Components/FontComponents.hpp"
+
 #ifdef UI_DEBUG_ENABLED
 #define UI_VALIDATION_ENABLED true
 #else
@@ -25,15 +28,27 @@ using namespace ui;
 
 inline void pick_window_present_mode(const Renderer *renderer)
 {
+  // SDL_GPUPresent mode is used to determine how the swapchain will present its textures
+  // to the OS.
+  //
+  // Ref: https://wiki.libsdl.org/SDL3/SDL_GPUPresentMode
+  //
   SDL_GPUPresentMode presentMode = SDL_GPU_PRESENTMODE_VSYNC;
 
   if (SDL_WindowSupportsGPUPresentMode(renderer->internals.gpuDevice,
                                        renderer->internals.sdlWindowPtr,
                                        SDL_GPU_PRESENTMODE_IMMEDIATE)) {
+    // Immediate present mode does what you think it does. Provides the lowest latency
+    // option, but tends to cause screen tearing.
+    //
     presentMode = SDL_GPU_PRESENTMODE_IMMEDIATE;
-  } else if (SDL_WindowSupportsGPUPresentMode(renderer->internals.gpuDevice,
-                                              renderer->internals.sdlWindowPtr,
-                                              SDL_GPU_PRESENTMODE_MAILBOX)) {
+  }
+  else if (SDL_WindowSupportsGPUPresentMode(renderer->internals.gpuDevice,
+                                            renderer->internals.sdlWindowPtr,
+                                            SDL_GPU_PRESENTMODE_MAILBOX)) {
+    // Mailbox awaits vblank for presentation, eliminating screen tearing. Thus, it is
+    // the preferred default.
+    //
     presentMode = SDL_GPU_PRESENTMODE_MAILBOX;
   }
 
@@ -42,48 +57,113 @@ inline void pick_window_present_mode(const Renderer *renderer)
                                 SDL_GPU_SWAPCHAINCOMPOSITION_SDR, presentMode);
 }
 
+inline size_t get_text_render_instance_count_from_query(
+  const flecs::query<ecs::BaseComponent, TextComponent> &query)
+{
+  size_t counter = 0;
+
+  query.each([&counter](const ecs::Entity e, const ecs::BaseComponent &baseComponent,
+                        const TextComponent &textComponent) {
+    counter += strlen(textComponent.text);
+  });
+
+  return counter;
+}
+
 inline std::vector<SpriteInstance> record_draw_list(const Canvas *canvas)
 {
   const auto world = canvas->entity.world();
-  auto query = world.query<ecs::BaseComponent, ecs::QuadRenderer>();
 
-  std::vector<SpriteInstance> instanceList(query.count());
+  const auto quadQuery = world.query<ecs::BaseComponent, ecs::QuadRenderer>();
+
+  const auto textQuery = world.query<ecs::BaseComponent, TextComponent>();
+  const size_t textQuerySize = get_text_render_instance_count_from_query(textQuery);
+
+  const size_t totalInstanceCount = quadQuery.count() + textQuerySize;
+
+  std::vector<SpriteInstance> instanceList(totalInstanceCount);
   size_t counter = 0;
 
   if (instanceList.empty()) {
     return instanceList;
   }
 
-  query.each([&instanceList, &counter](ecs::Entity e,
-                                       ecs::BaseComponent &baseComponent,
-                                       ecs::QuadRenderer &quadRenderer) {
+  // Querying quads
+  quadQuery.each([&instanceList, &counter](ecs::Entity e,
+                                           const ecs::BaseComponent &baseComponent,
+                                           const ecs::QuadRenderer &quadRenderer) {
     instanceList[counter] = {
-        .position = {static_cast<float>(baseComponent.rect.x),
-                     static_cast<float>(baseComponent.rect.y),
-                     static_cast<float>(baseComponent.zOrder)},
-        .rotation = 0.0f,
-        .size =
-            {
-                static_cast<float>(baseComponent.rect.width),
-                static_cast<float>(baseComponent.rect.height),
-            },
-        .color =
-            {
-                quadRenderer.color.r,
-                quadRenderer.color.g,
-                quadRenderer.color.b,
-                quadRenderer.color.a,
-            },
+      .position = {static_cast<float>(baseComponent.rect.x),
+                   static_cast<float>(baseComponent.rect.y),
+                   static_cast<float>(baseComponent.zOrder)},
+      .rotation = 0.0f,
+      .size =
+        {
+          static_cast<float>(baseComponent.rect.width),
+          static_cast<float>(baseComponent.rect.height),
+        },
+      .color =
+        {
+          quadRenderer.color.r,
+          quadRenderer.color.g,
+          quadRenderer.color.b,
+          quadRenderer.color.a,
+        },
     };
 
     counter++;
   });
 
+  // Querying text
+  textQuery.each([&instanceList, &counter](ecs::Entity e,
+                                           const ecs::BaseComponent &baseComponent,
+                                           const TextComponent &textComponent) {
+    const auto textView = std::string_view(textComponent.text);
+    const auto fontData = textComponent.font;
+    const auto fontSize = static_cast<float>(textComponent.pixelSize);
+
+    constexpr Color4f color = { 1.0f, 1.0f, 1.0f, 1.0f };
+
+    float currentAdvance = 0.0f;
+
+    for (const char c : textView) {
+      const auto unicodeValue = static_cast<uint16_t>(static_cast<unsigned char>(c));
+      const auto &glyphData = fontData->glyphs[unicodeValue];
+
+      // TODO: Support multiple alignments
+      const float x =
+        static_cast<float>(baseComponent.rect.x) + glyphData.planeBounds.left;
+      const float y =
+        static_cast<float>(baseComponent.rect.y) + glyphData.planeBounds.top;
+
+      const float width =
+        (glyphData.planeBounds.right - glyphData.planeBounds.left) * fontSize;
+      const float height =
+        (glyphData.planeBounds.top - glyphData.planeBounds.bottom) * fontSize;
+
+      instanceList[counter] = {
+        .position = {
+          .x = x + currentAdvance,
+          .y = y,
+          .z = static_cast<float>(baseComponent.zOrder),
+        },
+        .rotation = 0.0f,
+        .size = {
+          .x = width,
+          .y = height,
+        },
+        .color = color,
+      };
+
+      currentAdvance += glyphData.advance * fontSize;
+      counter++;
+    }
+  });
+
   return instanceList;
 }
 
-inline DrawPipeline create_draw_pipeline(const Renderer *renderer,
-                                         const Canvas *canvas)
+inline DrawPipeline create_draw_pipeline(const Renderer *renderer, const Canvas *canvas)
 {
   DrawPipeline pipeline = {};
 
@@ -95,33 +175,31 @@ inline DrawPipeline create_draw_pipeline(const Renderer *renderer,
   constexpr auto FS_PATH = "res/shaders/_compiled/SPIRV/batch_render.frag.spv";
 
   SDL_GPUShader *vertexShader =
-      createShader(renderer, VS_PATH, ShaderStage_Vertex, 0, 1, 1, 0);
+    createShader(renderer, VS_PATH, ShaderStage_Vertex, 0, 1, 1, 0);
   SDL_GPUShader *fragmentShader =
-      createShader(renderer, FS_PATH, ShaderStage_Fragment, 0, 0, 0, 0);
+    createShader(renderer, FS_PATH, ShaderStage_Fragment, 0, 0, 0, 0);
 
   // Create sprite render pipeline
   const SDL_GPUColorTargetDescription colorDesc = {
-      .format = SDL_GetGPUSwapchainTextureFormat(gpuDevice, window),
-      .blend_state = {
-          .src_color_blendfactor = SDL_GPU_BLENDFACTOR_SRC_ALPHA,
-          .dst_color_blendfactor = SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_ALPHA,
-          .color_blend_op = SDL_GPU_BLENDOP_ADD,
-          .src_alpha_blendfactor = SDL_GPU_BLENDFACTOR_SRC_ALPHA,
-          .dst_alpha_blendfactor = SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_ALPHA,
-          .alpha_blend_op = SDL_GPU_BLENDOP_ADD,
-          .enable_blend = true}};
+    .format = SDL_GetGPUSwapchainTextureFormat(gpuDevice, window),
+    .blend_state = {.src_color_blendfactor = SDL_GPU_BLENDFACTOR_SRC_ALPHA,
+                    .dst_color_blendfactor = SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_ALPHA,
+                    .color_blend_op = SDL_GPU_BLENDOP_ADD,
+                    .src_alpha_blendfactor = SDL_GPU_BLENDFACTOR_SRC_ALPHA,
+                    .dst_alpha_blendfactor = SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_ALPHA,
+                    .alpha_blend_op = SDL_GPU_BLENDOP_ADD,
+                    .enable_blend = true}};
 
   const SDL_GPUGraphicsPipelineTargetInfo targetInfo = {
-      .color_target_descriptions = &colorDesc, .num_color_targets = 1};
+    .color_target_descriptions = &colorDesc, .num_color_targets = 1};
 
   SDL_GPUGraphicsPipelineCreateInfo pipelineCreateInfo = {
-      .vertex_shader = vertexShader,
-      .fragment_shader = fragmentShader,
-      .primitive_type = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST,
-      .target_info = targetInfo};
+    .vertex_shader = vertexShader,
+    .fragment_shader = fragmentShader,
+    .primitive_type = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST,
+    .target_info = targetInfo};
 
-  pipeline.renderPipeline =
-      SDL_CreateGPUGraphicsPipeline(gpuDevice, &pipelineCreateInfo);
+  pipeline.renderPipeline = SDL_CreateGPUGraphicsPipeline(gpuDevice, &pipelineCreateInfo);
 
   // Cleanup shaders
   destroyShader(vertexShader, renderer);
@@ -132,16 +210,16 @@ inline DrawPipeline create_draw_pipeline(const Renderer *renderer,
 
   // Create data transfer buffer
   constexpr SDL_GPUTransferBufferCreateInfo transferBufferInfo = {
-      .usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD,
-      .size = static_cast<uint32_t>(MAX_SPRITE_COUNT * sizeof(SpriteInstance))};
+    .usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD,
+    .size = static_cast<uint32_t>(MAX_SPRITE_COUNT * sizeof(SpriteInstance))};
 
   pipeline.spriteDataTransferBuffer =
-      SDL_CreateGPUTransferBuffer(gpuDevice, &transferBufferInfo);
+    SDL_CreateGPUTransferBuffer(gpuDevice, &transferBufferInfo);
 
   // Create data buffer
   constexpr SDL_GPUBufferCreateInfo bufferCreateInfo = {
-      .usage = SDL_GPU_BUFFERUSAGE_GRAPHICS_STORAGE_READ,
-      .size = static_cast<uint32_t>(MAX_SPRITE_COUNT * sizeof(SpriteInstance))};
+    .usage = SDL_GPU_BUFFERUSAGE_GRAPHICS_STORAGE_READ,
+    .size = static_cast<uint32_t>(MAX_SPRITE_COUNT * sizeof(SpriteInstance))};
 
   pipeline.spriteDataBuffer = SDL_CreateGPUBuffer(gpuDevice, &bufferCreateInfo);
 
@@ -164,8 +242,8 @@ Renderer ui::createRenderer(const Window *window, const Canvas *canvas)
   // Create GPU device
   SDL_Log("Creating GPU device...\n");
 
-  renderer.internals.gpuDevice = SDL_CreateGPUDevice(
-      SDL_GPU_SHADERFORMAT_SPIRV, UI_VALIDATION_ENABLED, nullptr);
+  renderer.internals.gpuDevice =
+    SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV, UI_VALIDATION_ENABLED, nullptr);
 
   UI_LOG_MSG("Created GPU device (Backend: %s)",
              SDL_GetGPUDeviceDriver(renderer.internals.gpuDevice));
@@ -188,12 +266,9 @@ void ui::draw(const Window *window)
   // Setup camera matrix
   const Rect windowBounds = getWindowBounds(window);
 
-  const glm::mat4 cameraMatrix = glm::orthoZO(
-    0.0f,
-    static_cast<float>(windowBounds.width),
-    static_cast<float>(windowBounds.height),
-    0.0f, -1000.0f, 1000.0f
-  );
+  const glm::mat4 cameraMatrix =
+    glm::orthoZO(0.0f, static_cast<float>(windowBounds.width),
+                 static_cast<float>(windowBounds.height), 0.0f, -1000.0f, 1000.0f);
 
   // Get command buffer
   auto *gpuDevice = window->renderer.internals.gpuDevice;
@@ -208,8 +283,8 @@ void ui::draw(const Window *window)
 
   SDL_GPUTexture *swapchainTexture;
 
-  if (!SDL_WaitAndAcquireGPUSwapchainTexture(cmd, windowPtr, &swapchainTexture,
-                                             nullptr, nullptr)) {
+  if (!SDL_WaitAndAcquireGPUSwapchainTexture(cmd, windowPtr, &swapchainTexture, nullptr,
+                                             nullptr)) {
     UI_LOG_MSG("Failed to acquire GPUSwapchainTexture: %s", SDL_GetError());
     return;
   }
@@ -220,48 +295,44 @@ void ui::draw(const Window *window)
 
     const auto drawList = record_draw_list(&window->canvas);
 
-    const auto dataPtr = static_cast<SpriteInstance *>(SDL_MapGPUTransferBuffer(
-        gpuDevice, drawPipeline.spriteDataTransferBuffer, true));
+    const auto dataPtr = static_cast<SpriteInstance *>(
+      SDL_MapGPUTransferBuffer(gpuDevice, drawPipeline.spriteDataTransferBuffer, true));
 
     for (uint32_t i = 0; i < drawList.size(); i++) {
       dataPtr[i] = drawList[i];
     }
 
-    SDL_UnmapGPUTransferBuffer(gpuDevice,
-                               drawPipeline.spriteDataTransferBuffer);
+    SDL_UnmapGPUTransferBuffer(gpuDevice, drawPipeline.spriteDataTransferBuffer);
 
     // Upload instance data
     SDL_GPUCopyPass *copyPass = SDL_BeginGPUCopyPass(cmd);
 
     const SDL_GPUTransferBufferLocation transferBufferLocation = {
-        .transfer_buffer = drawPipeline.spriteDataTransferBuffer, .offset = 0};
+      .transfer_buffer = drawPipeline.spriteDataTransferBuffer, .offset = 0};
 
     const SDL_GPUBufferRegion bufferRegion = {
-        .buffer = drawPipeline.spriteDataBuffer,
-        .offset = 0,
-        .size =
-            static_cast<uint32_t>(drawList.size() * sizeof(SpriteInstance))};
+      .buffer = drawPipeline.spriteDataBuffer,
+      .offset = 0,
+      .size = static_cast<uint32_t>(drawList.size() * sizeof(SpriteInstance))};
 
-    SDL_UploadToGPUBuffer(copyPass, &transferBufferLocation, &bufferRegion,
-                          true);
+    SDL_UploadToGPUBuffer(copyPass, &transferBufferLocation, &bufferRegion, true);
 
     SDL_EndGPUCopyPass(copyPass);
 
     // Render everything
     const SDL_GPUColorTargetInfo colorTargetInfo = {
-        .texture = swapchainTexture,
-        .clear_color = {0.0f, 0.0f, 0.0f, 1.0f},
-        .load_op = SDL_GPU_LOADOP_CLEAR,
-        .store_op = SDL_GPU_STOREOP_STORE,
-        .cycle = false,
+      .texture = swapchainTexture,
+      .clear_color = {0.0f, 0.0f, 0.0f, 1.0f},
+      .load_op = SDL_GPU_LOADOP_CLEAR,
+      .store_op = SDL_GPU_STOREOP_STORE,
+      .cycle = false,
     };
 
     SDL_GPURenderPass *renderPass =
-        SDL_BeginGPURenderPass(cmd, &colorTargetInfo, 1, nullptr);
+      SDL_BeginGPURenderPass(cmd, &colorTargetInfo, 1, nullptr);
 
     SDL_BindGPUGraphicsPipeline(renderPass, drawPipeline.renderPipeline);
-    SDL_BindGPUVertexStorageBuffers(renderPass, 0,
-                                    &drawPipeline.spriteDataBuffer, 1);
+    SDL_BindGPUVertexStorageBuffers(renderPass, 0, &drawPipeline.spriteDataBuffer, 1);
 
     SDL_PushGPUVertexUniformData(cmd, 0, &cameraMatrix, sizeof(glm::mat4));
     SDL_DrawGPUPrimitives(renderPass, drawList.size() * 6, 1, 0, 0);

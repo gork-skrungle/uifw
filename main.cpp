@@ -1,8 +1,9 @@
 #include "UI/ECS/Components/BaseComponent.hpp"
 #include "UI/ECS/Components/RenderingComponents.hpp"
+#include "UI/GFX/Renderer/Text/TextHelpers.hpp"
 #include "UI/GFX/Shader.hpp"
-#include "UI/Window/Window.hpp"
 #include "UI/IO/Text/FontLoader.hpp"
+#include "UI/Window/Window.hpp"
 
 int main()
 {
@@ -11,30 +12,38 @@ int main()
   ui::Window window;
   ui::initializeWindow("UIFW Window", 1280, 720, &window);
 
-  ui::FontData fontData =
-      ui::FontLoader::loadFont("res/fonts/_generated/JetBrainsMono.png",
-                               "res/fonts/_generated/JetBrainsMono.json");
+  ui::FontData fontData = ui::FontLoader::loadFont(
+    "res/fonts/_generated/JetBrainsMono.png", "res/fonts/_generated/JetBrainsMono.json");
 
   /* ---------------------------- Setup scene ---------------------------- */
   auto layoutComponent = window.canvas.entity.get_ref<ui::LayoutComponent>();
 
   layoutComponent->type = ui::LayoutType_Horizontal;
-  layoutComponent->margins = { 10, 10, 10, 10 };
+  layoutComponent->margins = {10, 10, 10, 10};
   layoutComponent->spacing = 10;
 
-  const auto e1 = ui::ecs::createEntity(&window.ecsRoot, 0, 0, 50, 50,
-                                        "Entity1", &window.canvas.entity);
+  const auto e1 = ui::ecs::createEntity(&window.ecsRoot, 0, 0, 50, 50, "Entity1",
+                                        &window.canvas.entity);
 
   auto e1Base = e1.get_ref<ui::ecs::BaseComponent>();
 
   e1Base->minWidth = 500;
   e1Base->maxWidth = 500;
 
-  const auto e2 = ui::ecs::createEntity(&window.ecsRoot, 0, 0, 50, 50,
-                                        "Entity2", &window.canvas.entity);
+  e1.set<ui::LayoutComponent>({
+    .type = ui::LayoutType_Vertical,
+    .margins = {10, 10, 10, 10},
+    .spacing = 0,
+  });
 
-  const auto e3 = ui::ecs::createEntity(&window.ecsRoot, 0, 0, 50, 50,
-                                        "Entity3", &window.canvas.entity);
+  ui::TextHelpers::createTextEntity(&window.ecsRoot, &fontData, "TEXT!!!!!", 36, 0, 0,
+                                    128, 128, "TextEntity", &e1);
+
+  const auto e2 = ui::ecs::createEntity(&window.ecsRoot, 0, 0, 50, 50, "Entity2",
+                                        &window.canvas.entity);
+
+  const auto e3 = ui::ecs::createEntity(&window.ecsRoot, 0, 0, 50, 50, "Entity3",
+                                        &window.canvas.entity);
   e3.add<ui::LayoutComponent>();
 
   auto secondaryLayout = e3.get_ref<ui::LayoutComponent>();
@@ -42,12 +51,9 @@ int main()
   secondaryLayout->type = ui::LayoutType_Vertical;
   secondaryLayout->spacing = 10;
 
-  const auto e4 =
-      ui::ecs::createEntity(&window.ecsRoot, 0, 0, 50, 50, "Entity4", &e3);
-  const auto e5 =
-      ui::ecs::createEntity(&window.ecsRoot, 0, 0, 50, 50, "Entity5", &e3);
-  const auto e6 =
-      ui::ecs::createEntity(&window.ecsRoot, 0, 0, 50, 50, "Entity6", &e3);
+  const auto e4 = ui::ecs::createEntity(&window.ecsRoot, 0, 0, 50, 50, "Entity4", &e3);
+  const auto e5 = ui::ecs::createEntity(&window.ecsRoot, 0, 0, 50, 50, "Entity5", &e3);
+  const auto e6 = ui::ecs::createEntity(&window.ecsRoot, 0, 0, 50, 50, "Entity6", &e3);
 
   auto e6Base = e6.get_ref<ui::ecs::BaseComponent>();
 
@@ -56,10 +62,10 @@ int main()
   e6Base->minWidth = 100;
   e6Base->maxWidth = 100;
 
-  constexpr ui::ecs::Color red = { 1.0, 0.0, 0.0, 1.0 };
-  constexpr ui::ecs::Color green = { 0.0, 1.0, 0.0, 1.0 };
-  constexpr ui::ecs::Color blue = { 0.0, 0.0, 1.0, 1.0 };
-  constexpr ui::ecs::Color white = { 1.0, 1.0, 1.0, 1.0 };
+  constexpr ui::ecs::Color red = {1.0, 0.0, 0.0, 1.0};
+  constexpr ui::ecs::Color green = {0.0, 1.0, 0.0, 1.0};
+  constexpr ui::ecs::Color blue = {0.0, 0.0, 1.0, 1.0};
+  constexpr ui::ecs::Color white = {1.0, 1.0, 1.0, 1.0};
 
   e1.add<ui::ecs::QuadRenderer>();
   e2.add<ui::ecs::QuadRenderer>();

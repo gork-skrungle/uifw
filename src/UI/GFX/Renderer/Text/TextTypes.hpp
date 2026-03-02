@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <unordered_map>
 #include <vector>
 
 #include "UI/GFX/Renderer/RendererTypes.hpp"
@@ -57,9 +58,10 @@ struct FontGlyph
 
 struct FontData
 {
+  const char *imagePath;
   FontAtlas atlas;
   FontMetrics metrics;
-  std::vector<FontGlyph> glyphs;
+  std::unordered_map<uint16_t, FontGlyph> glyphs;
 };
 
 }
