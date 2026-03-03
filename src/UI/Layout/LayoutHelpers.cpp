@@ -47,7 +47,7 @@ void Layout::layout_children(const ecs::Entity &parent,
 
   std::vector<UI_REF(ecs::BaseComponent)> children(nChildren);
   auto currentComponent =
-      parentBaseComponent.transformRel.first.get_ref<ecs::BaseComponent>();
+    parentBaseComponent.transformRel.first.get_ref<ecs::BaseComponent>();
 
   for (size_t i = 0; i < nChildren; ++i) {
     const auto currentEntity = currentComponent.entity();
@@ -61,8 +61,7 @@ void Layout::layout_children(const ecs::Entity &parent,
       break;
     }
 
-    currentComponent =
-        currentComponent->transformRel.next.get_ref<ecs::BaseComponent>();
+    currentComponent = currentComponent->transformRel.next.get_ref<ecs::BaseComponent>();
   }
 
   // Pair of min/max values for the layout axis
@@ -70,16 +69,15 @@ void Layout::layout_children(const ecs::Entity &parent,
 
   for (size_t i = 0; i < nChildren; ++i) {
     switch (layoutType) {
-      case LayoutType_Horizontal:
-        inSizeConstraints[i] =
-            std::make_pair(children[i]->minWidth, children[i]->maxWidth);
-        break;
-      case LayoutType_Vertical:
-        inSizeConstraints[i] =
-            std::make_pair(children[i]->minHeight, children[i]->maxHeight);
-        break;
-      default:
-        break;
+    case LayoutType_Horizontal:
+      inSizeConstraints[i] = std::make_pair(children[i]->minWidth, children[i]->maxWidth);
+      break;
+    case LayoutType_Vertical:
+      inSizeConstraints[i] =
+        std::make_pair(children[i]->minHeight, children[i]->maxHeight);
+      break;
+    default:
+      break;
     }
   }
 
@@ -88,20 +86,20 @@ void Layout::layout_children(const ecs::Entity &parent,
   uint16_t currentPosition = 0;
 
   switch (layoutType) {
-    case LayoutType_Horizontal:
-      availableSpace = parentBaseComponent.rect.width - margins.left -
-                       margins.right - spacing * (nChildren - 1);
+  case LayoutType_Horizontal:
+    availableSpace = parentBaseComponent.rect.width - margins.left - margins.right -
+      spacing * (nChildren - 1);
 
-      currentPosition = parentBaseComponent.rect.x + margins.left;
-      break;
-    case LayoutType_Vertical:
-      availableSpace = parentBaseComponent.rect.height - margins.top -
-                       margins.bottom - spacing * (nChildren - 1);
+    currentPosition = parentBaseComponent.rect.x + margins.left;
+    break;
+  case LayoutType_Vertical:
+    availableSpace = parentBaseComponent.rect.height - margins.top - margins.bottom -
+      spacing * (nChildren - 1);
 
-      currentPosition = parentBaseComponent.rect.y + margins.top;
-      break;
-    default:
-      break;
+    currentPosition = parentBaseComponent.rect.y + margins.top;
+    break;
+  default:
+    break;
   }
 
   const uint16_t initialSpace = availableSpace;
@@ -150,42 +148,38 @@ void Layout::layout_children(const ecs::Entity &parent,
   uint16_t secondaryAxisPosition = 0.0f;
 
   switch (layoutType) {
-    case LayoutType_Horizontal:
-      secondaryAxisSize =
-          parentBaseComponent.rect.height - margins.top - margins.bottom;
-      secondaryAxisPosition = parentBaseComponent.rect.y + margins.top;
-      break;
-    case LayoutType_Vertical:
-      secondaryAxisSize =
-          parentBaseComponent.rect.width - margins.left - margins.right;
-      secondaryAxisPosition = parentBaseComponent.rect.x + margins.left;
-      break;
-    default:
-      break;
+  case LayoutType_Horizontal:
+    secondaryAxisSize = parentBaseComponent.rect.height - margins.top - margins.bottom;
+    secondaryAxisPosition = parentBaseComponent.rect.y + margins.top;
+    break;
+  case LayoutType_Vertical:
+    secondaryAxisSize = parentBaseComponent.rect.width - margins.left - margins.right;
+    secondaryAxisPosition = parentBaseComponent.rect.x + margins.left;
+    break;
+  default:
+    break;
   }
 
   // Set sizes
   for (size_t i = 0; i < nChildren; ++i) {
     switch (layoutType) {
-      case LayoutType_Horizontal:
-        children[i]->rect = {currentPosition, secondaryAxisPosition,
-                             computedSizes[i], secondaryAxisSize};
-        break;
-      case LayoutType_Vertical:
-        children[i]->rect = {secondaryAxisPosition, currentPosition,
-                             secondaryAxisSize, computedSizes[i]};
-        break;
-      default:
-        break;
+    case LayoutType_Horizontal:
+      children[i]->rect = {currentPosition, secondaryAxisPosition, computedSizes[i],
+                           secondaryAxisSize};
+      break;
+    case LayoutType_Vertical:
+      children[i]->rect = {secondaryAxisPosition, currentPosition, secondaryAxisSize,
+                           computedSizes[i]};
+      break;
+    default:
+      break;
     }
     children[i]->needsUpdate = false;
     currentPosition += computedSizes[i] + spacing;
   }
 }
 
-void Layout::clamp_value(uint16_t *value,
-                         const uint16_t min,
-                         const uint16_t max)
+void Layout::clamp_value(uint16_t *value, const uint16_t min, const uint16_t max)
 {
   if (*value < min) {
     *value = min;

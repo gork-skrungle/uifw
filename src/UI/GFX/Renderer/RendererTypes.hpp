@@ -2,6 +2,8 @@
 
 #include "Utils.hpp"
 
+#include <cstdint>
+
 namespace ui {
 
 struct Vector2i

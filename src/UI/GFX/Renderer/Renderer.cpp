@@ -1,20 +1,19 @@
 #include "Renderer.hpp"
 
-#include <SDL3/SDL_gpu.h>
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-
+#include "Text/TextTypes.hpp"
 #include "UI/ECS/Components/BaseComponent.hpp"
+#include "UI/ECS/Components/FontComponents.hpp"
 #include "UI/ECS/Components/RenderingComponents.hpp"
 #include "UI/GFX/Renderer/RendererTypes.hpp"
 #include "UI/GFX/Shader.hpp"
 #include "UI/Window/Window.hpp"
 #include "Utils.hpp"
 
-#include <vector>
+#include <SDL3/SDL_gpu.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
-#include "Text/TextTypes.hpp"
-#include "UI/ECS/Components/FontComponents.hpp"
+#include <vector>
 
 #ifdef UI_DEBUG_ENABLED
 #define UI_VALIDATION_ENABLED true
@@ -26,7 +25,7 @@ constexpr uint32_t MAX_SPRITE_COUNT = 8192;
 
 using namespace ui;
 
-inline void pick_window_present_mode(const Renderer *renderer)
+void Renderer::pick_window_present_mode(const RendererData *renderer)
 {
   // SDL_GPUPresent mode is used to determine how the swapchain will present its textures
   // to the OS.
@@ -57,7 +56,7 @@ inline void pick_window_present_mode(const Renderer *renderer)
                                 SDL_GPU_SWAPCHAINCOMPOSITION_SDR, presentMode);
 }
 
-inline size_t get_text_render_instance_count_from_query(
+size_t Renderer::get_text_render_instance_count_from_query(
   const flecs::query<ecs::BaseComponent, TextComponent> &query)
 {
   size_t counter = 0;
@@ -70,7 +69,7 @@ inline size_t get_text_render_instance_count_from_query(
   return counter;
 }
 
-inline std::vector<SpriteInstance> record_draw_list(const Canvas *canvas)
+std::vector<SpriteInstance> Renderer::record_draw_list(const Canvas *canvas)
 {
   const auto world = canvas->entity.world();
 
@@ -122,7 +121,7 @@ inline std::vector<SpriteInstance> record_draw_list(const Canvas *canvas)
     const auto fontData = textComponent.font;
     const auto fontSize = static_cast<float>(textComponent.pixelSize);
 
-    constexpr Color4f color = { 1.0f, 1.0f, 1.0f, 1.0f };
+    constexpr Color4f color = {1.0f, 1.0f, 1.0f, 1.0f};
 
     float currentAdvance = 0.0f;
 
@@ -142,16 +141,18 @@ inline std::vector<SpriteInstance> record_draw_list(const Canvas *canvas)
         (glyphData.planeBounds.top - glyphData.planeBounds.bottom) * fontSize;
 
       instanceList[counter] = {
-        .position = {
-          .x = x + currentAdvance,
-          .y = y,
-          .z = static_cast<float>(baseComponent.zOrder),
-        },
+        .position =
+          {
+            .x = x + currentAdvance,
+            .y = y,
+            .z = static_cast<float>(baseComponent.zOrder),
+          },
         .rotation = 0.0f,
-        .size = {
-          .x = width,
-          .y = height,
-        },
+        .size =
+          {
+            .x = width,
+            .y = height,
+          },
         .color = color,
       };
 
@@ -163,7 +164,8 @@ inline std::vector<SpriteInstance> record_draw_list(const Canvas *canvas)
   return instanceList;
 }
 
-inline DrawPipeline create_draw_pipeline(const Renderer *renderer, const Canvas *canvas)
+DrawPipeline Renderer::create_draw_pipeline(const RendererData *renderer,
+                                            const Canvas *canvas)
 {
   DrawPipeline pipeline = {};
 
@@ -171,13 +173,13 @@ inline DrawPipeline create_draw_pipeline(const Renderer *renderer, const Canvas 
   auto *window = renderer->internals.sdlWindowPtr;
 
   // Load shaders
-  constexpr auto VS_PATH = "res/shaders/_compiled/SPIRV/batch_render.vert.spv";
-  constexpr auto FS_PATH = "res/shaders/_compiled/SPIRV/batch_render.frag.spv";
+  constexpr auto SPRITE_VS_PATH = "res/shaders/_compiled/SPIRV/batch_render.vert.spv";
+  constexpr auto SPRITE_FS_PATH = "res/shaders/_compiled/SPIRV/batch_render.frag.spv";
 
   SDL_GPUShader *vertexShader =
-    createShader(renderer, VS_PATH, ShaderStage_Vertex, 0, 1, 1, 0);
+    createShader(renderer, SPRITE_VS_PATH, ShaderStage_Vertex, 0, 1, 1, 0);
   SDL_GPUShader *fragmentShader =
-    createShader(renderer, FS_PATH, ShaderStage_Fragment, 0, 0, 0, 0);
+    createShader(renderer, SPRITE_FS_PATH, ShaderStage_Fragment, 0, 0, 0, 0);
 
   // Create sprite render pipeline
   const SDL_GPUColorTargetDescription colorDesc = {
@@ -199,7 +201,8 @@ inline DrawPipeline create_draw_pipeline(const Renderer *renderer, const Canvas 
     .primitive_type = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST,
     .target_info = targetInfo};
 
-  pipeline.renderPipeline = SDL_CreateGPUGraphicsPipeline(gpuDevice, &pipelineCreateInfo);
+  pipeline.spriteDataPipeline =
+    SDL_CreateGPUGraphicsPipeline(gpuDevice, &pipelineCreateInfo);
 
   // Cleanup shaders
   destroyShader(vertexShader, renderer);
@@ -224,7 +227,7 @@ inline DrawPipeline create_draw_pipeline(const Renderer *renderer, const Canvas 
   pipeline.spriteDataBuffer = SDL_CreateGPUBuffer(gpuDevice, &bufferCreateInfo);
 
   // Record size for rendering
-  pipeline.drawListSize = drawList.size();
+  pipeline.spriteDrawListSize = drawList.size();
 
   // Transfer up-front data (not needed currently, no textures)
   // ...
@@ -232,12 +235,11 @@ inline DrawPipeline create_draw_pipeline(const Renderer *renderer, const Canvas 
   return pipeline;
 }
 
-Renderer ui::createRenderer(const Window *window, const Canvas *canvas)
+RendererData Renderer::createRenderer(const Window *window, const Canvas *canvas)
 {
-  Renderer renderer;
+  RendererData renderer;
 
   renderer.internals.sdlWindowPtr = window->ptr;
-  renderer.drawPipeline.drawListSize = 0;
 
   // Create GPU device
   SDL_Log("Creating GPU device...\n");
@@ -261,7 +263,7 @@ Renderer ui::createRenderer(const Window *window, const Canvas *canvas)
   return renderer;
 }
 
-void ui::draw(const Window *window)
+void Renderer::draw(const Window *window)
 {
   // Setup camera matrix
   const Rect windowBounds = getWindowBounds(window);
@@ -331,7 +333,7 @@ void ui::draw(const Window *window)
     SDL_GPURenderPass *renderPass =
       SDL_BeginGPURenderPass(cmd, &colorTargetInfo, 1, nullptr);
 
-    SDL_BindGPUGraphicsPipeline(renderPass, drawPipeline.renderPipeline);
+    SDL_BindGPUGraphicsPipeline(renderPass, drawPipeline.spriteDataPipeline);
     SDL_BindGPUVertexStorageBuffers(renderPass, 0, &drawPipeline.spriteDataBuffer, 1);
 
     SDL_PushGPUVertexUniformData(cmd, 0, &cameraMatrix, sizeof(glm::mat4));

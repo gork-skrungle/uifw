@@ -4,7 +4,7 @@
 
 using namespace ui;
 
-SDL_GPUShader *ui::createShader(const Renderer *renderer,
+SDL_GPUShader *ui::createShader(const RendererData *renderer,
                                 const char *bytecodePath,
                                 const ShaderStage stage,
                                 const uint32_t samplerCount,
@@ -45,7 +45,7 @@ SDL_GPUShader *ui::createShader(const Renderer *renderer,
   return shader;
 }
 
-void ui::destroyShader(SDL_GPUShader *shader, const Renderer *renderer)
+void ui::destroyShader(SDL_GPUShader *shader, const RendererData *renderer)
 {
   SDL_ReleaseGPUShader(renderer->internals.gpuDevice, shader);
 }

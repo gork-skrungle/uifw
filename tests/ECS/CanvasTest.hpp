@@ -78,7 +78,7 @@ TEST_CASE("Basic horizontal layout")
   CHECK(canvas.entity.get<ecs::BaseComponent>().transformRel.nChildren == 3);
 
   // Apply layout
-  ui::layoutChildren(canvas.entity);
+  Layout::traverseAndApplyLayout(canvas.entity);
 
   auto validateComponent = [](ecs::Entity entity) {
     const auto baseComponent = entity.get<ui::ecs::BaseComponent>();

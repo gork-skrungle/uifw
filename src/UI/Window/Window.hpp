@@ -12,7 +12,7 @@ namespace ui {
 struct Window
 {
   SDL_Window *ptr = nullptr;
-  Renderer renderer;
+  RendererData renderer;
   Canvas canvas;
   ecs::ECSRoot ecsRoot;
   bool needsRelayout = true;

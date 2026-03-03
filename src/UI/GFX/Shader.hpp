@@ -16,7 +16,7 @@ enum ShaderStage
 
 typedef SDL_GPUShader Shader;
 
-Shader *createShader(const Renderer *renderer,
+Shader *createShader(const RendererData *renderer,
                      const char *bytecodePath,
                      ShaderStage stage,
                      uint32_t samplerCount,
@@ -24,6 +24,6 @@ Shader *createShader(const Renderer *renderer,
                      uint32_t storageBufferCount,
                      uint32_t storageTextureCount);
 
-void destroyShader(Shader *shader, const Renderer *renderer);
+void destroyShader(Shader *shader, const RendererData *renderer);
 
 }  // namespace ui

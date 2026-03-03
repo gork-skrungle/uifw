@@ -61,7 +61,7 @@ void ui::initializeWindow(const char *title,
                                 bounds.width, bounds.height, "Canvas");
   
   // Create ui::Renderer
-  window->renderer = ui::createRenderer(window, &window->canvas);
+  window->renderer = Renderer::createRenderer(window, &window->canvas);
 }
 
 void ui::relayout(const Window *window)
@@ -102,7 +102,7 @@ bool ui::updateWindow(Window *window)
     window->needsRelayout = false;
   }
 
-  ui::draw(window);
+  Renderer::draw(window);
 
   return true;
 }
