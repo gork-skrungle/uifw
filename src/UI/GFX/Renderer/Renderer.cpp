@@ -282,10 +282,13 @@ std::vector<FontGlyphInstance> Renderer::record_glyph_draw_list(const Canvas *ca
 
     float currentAdvance = 0.0f;
 
-    for (const char c : textView) {
-      const auto unicodeValue = static_cast<uint16_t>(static_cast<unsigned char>(c));
-      const auto &glyphData = fontData->glyphs[unicodeValue];
+    const char *strPtr = textView.data();
+    size_t strLen = textView.size();
 
+    while (strLen > 0) {
+      const uint32_t unicodeValue = SDL_StepUTF8(&strPtr, &strLen);
+      const auto &glyphData = fontData->glyphs[unicodeValue];
+      
       // TODO: Support multiple alignments
       const float x =
         static_cast<float>(baseComponent.rect.x) + glyphData.planeBounds.left;
@@ -297,10 +300,14 @@ std::vector<FontGlyphInstance> Renderer::record_glyph_draw_list(const Canvas *ca
       const float height =
         (glyphData.planeBounds.top - glyphData.planeBounds.bottom) * fontSize;
 
-      const float u0 = glyphData.atlasBounds.left / textureSize.x;
-      const float v0 = glyphData.atlasBounds.bottom / textureSize.y;
-      const float u1 = glyphData.atlasBounds.right / textureSize.x;
-      const float v1 = glyphData.atlasBounds.top / textureSize.y;
+      const float atlasHeight = fontData->atlas.atlasDimensions.y;
+
+      const Vector4f textureCoords = {
+        glyphData.atlasBounds.left / textureSize.x,
+        (atlasHeight - glyphData.atlasBounds.top) / atlasHeight,
+        glyphData.atlasBounds.right / textureSize.x,
+        (atlasHeight - glyphData.atlasBounds.bottom) / atlasHeight,
+      };
 
       instanceList[counter] = {
         .position =
@@ -314,7 +321,7 @@ std::vector<FontGlyphInstance> Renderer::record_glyph_draw_list(const Canvas *ca
             .x = width,
             .y = height,
           },
-        .textureCoords = {u0, v0, u1, v1},
+        .textureCoords = textureCoords,
         .color = color,
       };
 
@@ -492,7 +499,7 @@ void Renderer::draw(const Window *window)
     SDL_UploadToGPUBuffer(spriteCopyPass, &spriteTransferBufferLocation,
                           &spriteBufferRegion, true);
 
-    
+
     SDL_EndGPUCopyPass(spriteCopyPass);
 
     // Upload text instance data

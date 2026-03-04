@@ -104,7 +104,7 @@ void FontLoader::load_JSON_data(const char *jsonPath, FontData *fontData)
   const auto &glyphData = data["glyphs"];
 
   for (const auto &glyph : glyphData) {
-    const auto &index = glyph["index"].get<uint16_t>();
+    const auto &unicode = glyph["unicode"].get<uint32_t>();
     const auto &advance = glyph["advance"].get<float>();
 
     if (!glyph.contains("planeBounds") || glyph["planeBounds"].is_null() ||
@@ -115,7 +115,7 @@ void FontLoader::load_JSON_data(const char *jsonPath, FontData *fontData)
     const auto &planeBounds = glyph["planeBounds"];
     const auto &atlasBounds = glyph["atlasBounds"];
 
-    fontData->glyphs[index] = {
+    fontData->glyphs[unicode] = {
       .advance = advance,
       .planeBounds =
         {

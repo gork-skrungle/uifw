@@ -36,7 +36,8 @@ int main()
     .spacing = 0,
   });
 
-  ui::TextHelpers::createTextEntity(&window.ecsRoot, &fontData, "this is text", 36, 0, 0,
+  ui::TextHelpers::createTextEntity(&window.ecsRoot, &fontData,
+                                    "Pack my box with five-dozen liquor jugs.", 16, 0, 0,
                                     128, 128, "TextEntity", &e1);
 
   const auto e2 = ui::ecs::createEntity(&window.ecsRoot, 0, 0, 50, 50, "Entity2",
