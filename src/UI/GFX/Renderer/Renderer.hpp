@@ -56,10 +56,16 @@ private:
   static DrawPipeline create_draw_pipeline(const RendererData *renderer,
                                            const Canvas *canvas);
 
-  static std::vector<SpriteInstance> record_draw_list(const Canvas *canvas);
+  static std::vector<SpriteInstance> record_sprite_draw_list(const Canvas *canvas);
+
+  static std::vector<FontGlyphInstance> record_glyph_draw_list(const Canvas *canvas);
 
   static size_t get_text_render_instance_count_from_query(
     const flecs::query<ecs::BaseComponent, TextComponent> &query);
+
+  static void create_text_render_pipeline(const RendererData *renderer,
+                                          const Canvas *canvas,
+                                          DrawPipeline *pipeline);
 };
 
 } // namespace ui

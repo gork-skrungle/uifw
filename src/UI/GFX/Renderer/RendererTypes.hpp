@@ -59,6 +59,7 @@ struct SpriteInstance
 struct FontGlyphInstance
 {
   Vector3f position;
+  UI_PAD_FLOAT(1);
   Vector2f size;
   UI_PAD_FLOAT(2);
   Vector4f textureCoords;

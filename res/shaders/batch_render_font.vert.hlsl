@@ -1,8 +1,9 @@
 struct FontGlyphInstance
 {
   float3 position;
+  float _pad0;
   float2 size;
-  float2 _padding; // Padding variable to satisfy GLSL std140 layout requirement (extra 16 bytes)
+  float2 _pad1;
   float4 texCoords;
   float4 color;
 };
@@ -23,36 +24,36 @@ cbuffer UniformBlock : register(b0, space1)
 
 static const uint triangleIndices[6] = {0, 1, 2, 3, 2, 1};
 static const float2 vertexPos[4] = {
-    {0.0f, 0.0f},
-    {1.0f, 0.0f},
-    {0.0f, 1.0f},
-    {1.0f, 1.0f}
+  {0.0f, 0.0f},
+  {1.0f, 0.0f},
+  {0.0f, 1.0f},
+  {1.0f, 1.0f}
 };
 
 Output main(uint id : SV_VertexID)
 {
-    uint spriteIndex = id / 6;
-    uint vert = triangleIndices[id % 6];
+  uint spriteIndex = id / 6;
+  uint vert = triangleIndices[id % 6];
 
-    FontGlyphInstance sprite = DataBuffer[spriteIndex];
-    
-    float2 texCoord[4] = {
-      {sprite.texCoords.x, sprite.texCoords.y},
-      {sprite.texCoords.x + sprite.texCoords.z, sprite.texCoords.y},
-      {sprite.texCoords.x, sprite.texCoords.z + sprite.texCoords.w},
-      {sprite.texCoords.x + sprite.texCoords.z, sprite.texCoords.z + sprite.texCoords.w}
-    };
+  FontGlyphInstance sprite = DataBuffer[spriteIndex];
 
-    float2 coord = vertexPos[vert];
-    coord *= sprite.size;
+  float2 texCoord[4] = {
+    {sprite.texCoords.x, sprite.texCoords.y}, // u0, v0
+    {sprite.texCoords.z, sprite.texCoords.y}, // u1, v0
+    {sprite.texCoords.x, sprite.texCoords.w}, // u0, v1
+    {sprite.texCoords.z, sprite.texCoords.w}  // u1, v1
+  };
 
-    float3 coordWithDepth = float3(coord + sprite.position.xy, sprite.position.z);
+  float2 coord = vertexPos[vert];
+  coord *= sprite.size;
 
-    Output output;
+  float3 coordWithDepth = float3(coord + sprite.position.xy, sprite.position.z);
 
-    output.position = mul(viewProjectionMatrix, float4(coordWithDepth, 1.0f));
-    output.texCoord = texCoord[vert];
-    output.color = sprite.color;
+  Output output;
 
-    return output;
+  output.position = mul(viewProjectionMatrix, float4(coordWithDepth, 1.0f));
+  output.texCoord = texCoord[vert];
+  output.color = sprite.color;
+
+  return output;
 }
