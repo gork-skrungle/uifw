@@ -29,8 +29,7 @@ float4 main(Input input) : SV_Target0
   float sd = median(msdf.r, msdf.g, msdf.b);
 
   float screenPxDistance = screenPxRange(input.texCoord) * (sd - 0.5);
-  float opacity = clamp(screenPxDistance + 0.5, 0.0, 1.0);
+  float opacity = smoothstep(-0.5, 0.5, screenPxDistance);
 
-  const float4 bgColor = float4(input.color.rgb, 0.0);
-  return lerp(bgColor, input.color, opacity);
+  return float4(input.color.rgb, input.color.a * opacity);
 }

@@ -11,6 +11,7 @@ public:
   static ecs::Entity createTextEntity(const ecs::ECSRoot *root,
                                       FontData *fontData,
                                       const char *text,
+                                      Color4f color,
                                       uint16_t pixelSize,
                                       uint16_t x,
                                       uint16_t y,

@@ -7,6 +7,7 @@
 #include "Utils.hpp"
 
 #include <SDL3/SDL.h>
+#include <glm/glm.hpp>
 
 #include <vector>
 
@@ -19,6 +20,23 @@ struct SDLInternals
 {
   SDL_Window *sdlWindowPtr = nullptr;
   SDL_GPUDevice *gpuDevice = nullptr;
+};
+
+// Pre-allocated storage for draw data to avoid per-frame allocations
+struct DrawDataStorage
+{
+  std::vector<SpriteInstance> spriteInstances;
+  std::vector<FontGlyphInstance> glyphInstances;
+  
+  // Track counts from last frame for dirty checking
+  size_t lastSpriteCount = 0;
+  size_t lastGlyphCount = 0;
+  
+  // Cache last window dimensions for camera matrix
+  uint16_t lastWindowWidth = 0;
+  uint16_t lastWindowHeight = 0;
+  glm::mat4 cachedCameraMatrix = glm::mat4(1.0f);
+  bool cameraMatrixValid = false;
 };
 
 struct DrawPipeline
@@ -41,6 +59,7 @@ struct RendererData
 {
   SDLInternals internals;
   DrawPipeline drawPipeline;
+  DrawDataStorage storage;  // Pre-allocated storage for draw data
 };
 
 class Renderer
@@ -48,7 +67,7 @@ class Renderer
 public:
   static RendererData createRenderer(const Window *window, const Canvas *canvas);
 
-  static void draw(const Window *window);
+  static void draw(Window *window);
 
 private:
   static void pick_window_present_mode(const RendererData *renderer);
@@ -56,16 +75,21 @@ private:
   static DrawPipeline create_draw_pipeline(const RendererData *renderer,
                                            const Canvas *canvas);
 
-  static std::vector<SpriteInstance> record_sprite_draw_list(const Canvas *canvas);
+  // Direct recording into pre-allocated buffers (no vector allocation)
+  static size_t record_sprite_draw_list(const Canvas *canvas,
+                                        std::vector<SpriteInstance> &outInstances);
 
-  static std::vector<FontGlyphInstance> record_glyph_draw_list(const Canvas *canvas);
-
-  static size_t get_text_render_instance_count_from_query(
-    const flecs::query<ecs::BaseComponent, TextComponent> &query);
+  static size_t record_glyph_draw_list(const Canvas *canvas,
+                                       std::vector<FontGlyphInstance> &outInstances);
 
   static void create_text_render_pipeline(const RendererData *renderer,
                                           const Canvas *canvas,
                                           DrawPipeline *pipeline);
+  
+  // Cached camera matrix
+  static const glm::mat4& get_camera_matrix(DrawDataStorage &storage, 
+                                            uint16_t windowWidth, 
+                                            uint16_t windowHeight);
 };
 
 } // namespace ui

@@ -15,7 +15,6 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include <algorithm>
-#include <vector>
 
 #ifdef UI_DEBUG_ENABLED
 #define UI_VALIDATION_ENABLED true
@@ -36,46 +35,22 @@ using namespace ui;
 
 void Renderer::pick_window_present_mode(const RendererData *renderer)
 {
-  // SDL_GPUPresent mode is used to determine how the swapchain will present its textures
-  // to the OS.
-  //
-  // Ref: https://wiki.libsdl.org/SDL3/SDL_GPUPresentMode
-  //
   SDL_GPUPresentMode presentMode = SDL_GPU_PRESENTMODE_VSYNC;
 
   if (SDL_WindowSupportsGPUPresentMode(renderer->internals.gpuDevice,
                                        renderer->internals.sdlWindowPtr,
                                        SDL_GPU_PRESENTMODE_IMMEDIATE)) {
-    // Immediate present mode does what you think it does. Provides the lowest latency
-    // option, but tends to cause screen tearing.
-    //
     presentMode = SDL_GPU_PRESENTMODE_IMMEDIATE;
   }
   else if (SDL_WindowSupportsGPUPresentMode(renderer->internals.gpuDevice,
                                             renderer->internals.sdlWindowPtr,
                                             SDL_GPU_PRESENTMODE_MAILBOX)) {
-    // Mailbox awaits vblank for presentation, eliminating screen tearing. Thus, it is
-    // the preferred default.
-    //
     presentMode = SDL_GPU_PRESENTMODE_MAILBOX;
   }
 
   SDL_SetGPUSwapchainParameters(renderer->internals.gpuDevice,
                                 renderer->internals.sdlWindowPtr,
                                 SDL_GPU_SWAPCHAINCOMPOSITION_SDR, presentMode);
-}
-
-size_t Renderer::get_text_render_instance_count_from_query(
-  const flecs::query<ecs::BaseComponent, TextComponent> &query)
-{
-  size_t counter = 0;
-
-  query.each([&counter](const ecs::Entity e, const ecs::BaseComponent &baseComponent,
-                        const TextComponent &textComponent) {
-    counter += strlen(textComponent.text);
-  });
-
-  return counter;
 }
 
 void Renderer::create_text_render_pipeline(const RendererData *renderer,
@@ -88,20 +63,13 @@ void Renderer::create_text_render_pipeline(const RendererData *renderer,
   constexpr auto TEXT_VS_PATH = "res/shaders/_compiled/SPIRV/batch_render_font.vert.spv";
   constexpr auto TEXT_FS_PATH = "res/shaders/_compiled/SPIRV/batch_render_font.frag.spv";
 
-  // Load image data for font
-  //
-  // TODO: Find a way to load fonts into a global registry so we are not required
-  //  to manually provide a path here.
-  //
+  // Load font atlas image
   SDL_Surface *imageData = Image::loadImageFromPath(
-    "res/fonts/_generated/JetBrainsMono.png",
-    SDL_PIXELFORMAT_ARGB8888);
+    "res/fonts/_generated/JetBrainsMono.png", SDL_PIXELFORMAT_ARGB8888);
 
   if (imageData == nullptr) {
     UI_LOG_MSG("No font atlas could be loaded. Exiting...");
-    // Cleanup shaders before exiting
-    // Note: Shaders haven't been created yet at this point
-    exit(0); // FIXME: Fix dumb idiot exit
+    exit(0);
   }
 
   SDL_GPUShader *textVertexShader =
@@ -130,10 +98,10 @@ void Renderer::create_text_render_pipeline(const RendererData *renderer,
 
   pipeline->textPipeline = SDL_CreateGPUGraphicsPipeline(gpuDevice, &pipelineCreateInfo);
 
-  // Cleanup shaders
   destroyShader(textVertexShader, renderer);
   destroyShader(textFragmentShader, renderer);
 
+  // Create font atlas texture
   const auto imageDataSize = static_cast<uint32_t>(imageData->w * imageData->h * 4);
 
   SDL_GPUTransferBufferCreateInfo atlasTransferInfo = {
@@ -144,12 +112,11 @@ void Renderer::create_text_render_pipeline(const RendererData *renderer,
   SDL_GPUTransferBuffer *textureTransferBuffer =
     SDL_CreateGPUTransferBuffer(gpuDevice, &atlasTransferInfo);
 
-  void *textureTransferPtr = SDL_MapGPUTransferBuffer(
-    gpuDevice, textureTransferBuffer, false);
+  void *textureTransferPtr =
+    SDL_MapGPUTransferBuffer(gpuDevice, textureTransferBuffer, false);
   SDL_memcpy(textureTransferPtr, imageData->pixels, imageDataSize);
   SDL_UnmapGPUTransferBuffer(gpuDevice, textureTransferBuffer);
 
-  // Create GPU texture and sampler
   const SDL_GPUTextureCreateInfo atlasTexCreateInfo = {
     .type = SDL_GPU_TEXTURETYPE_2D,
     .format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM,
@@ -173,12 +140,7 @@ void Renderer::create_text_render_pipeline(const RendererData *renderer,
 
   pipeline->fontAtlasSampler = SDL_CreateGPUSampler(gpuDevice, &atlasSamplerCreateInfo);
 
-  // Build draw list
-  const auto textDrawList = record_glyph_draw_list(canvas);
-  const auto textDrawListSize =
-    static_cast<uint32_t>(textDrawList.size() * sizeof(FontGlyphInstance));
-
-  // Create data/transfer buffers
+  // Create text data transfer buffer
   constexpr SDL_GPUTransferBufferCreateInfo textTransferBufferInfo = {
     .usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD,
     .size = MAX_GLYPH_COUNT * sizeof(FontGlyphInstance),
@@ -194,7 +156,7 @@ void Renderer::create_text_render_pipeline(const RendererData *renderer,
 
   pipeline->textBuffer = SDL_CreateGPUBuffer(gpuDevice, &textBufferCreateInfo);
 
-  // Transfer upfront data
+  // Upload font atlas texture
   SDL_GPUCommandBuffer *cmd = SDL_AcquireGPUCommandBuffer(gpuDevice);
   SDL_GPUCopyPass *copyPass = SDL_BeginGPUCopyPass(cmd);
 
@@ -203,12 +165,10 @@ void Renderer::create_text_render_pipeline(const RendererData *renderer,
     .offset = 0,
   };
 
-  const SDL_GPUTextureRegion transferRegion = {
-    .texture = pipeline->fontAtlasTexture,
-    .w = static_cast<uint32_t>(imageData->w),
-    .h = static_cast<uint32_t>(imageData->h),
-    .d = 1
-  };
+  const SDL_GPUTextureRegion transferRegion = {.texture = pipeline->fontAtlasTexture,
+                                               .w = static_cast<uint32_t>(imageData->w),
+                                               .h = static_cast<uint32_t>(imageData->h),
+                                               .d = 1};
 
   SDL_UploadToGPUTexture(copyPass, &transferInfo, &transferRegion, false);
 
@@ -219,25 +179,28 @@ void Renderer::create_text_render_pipeline(const RendererData *renderer,
   SDL_ReleaseGPUTransferBuffer(gpuDevice, textureTransferBuffer);
 }
 
-std::vector<SpriteInstance> Renderer::record_sprite_draw_list(const Canvas *canvas)
+size_t Renderer::record_sprite_draw_list(const Canvas *canvas,
+                                         std::vector<SpriteInstance> &outInstances)
 {
   const auto world = canvas->entity.world();
-
   const auto quadQuery = world.query<ecs::BaseComponent, ecs::QuadRenderer>();
-  const size_t totalInstanceCount = quadQuery.count();
 
-  std::vector<SpriteInstance> instanceList(totalInstanceCount);
+  // Reserve space to avoid reallocations
+  const size_t estimatedCount = quadQuery.count();
+  if (outInstances.capacity() < estimatedCount) {
+    outInstances.reserve(estimatedCount);
+  }
+  outInstances.clear();
+
   size_t counter = 0;
 
-  if (instanceList.empty()) {
-    return instanceList;
-  }
-
-  // Querying quads
-  quadQuery.each([&instanceList, &counter](ecs::Entity e,
+  quadQuery.each([&outInstances, &counter](ecs::Entity e,
                                            const ecs::BaseComponent &baseComponent,
                                            const ecs::QuadRenderer &quadRenderer) {
-    instanceList[counter] = {
+    if (counter >= MAX_SPRITE_COUNT)
+      return;
+
+    outInstances.emplace_back(SpriteInstance{
       .position = {static_cast<float>(baseComponent.rect.x),
                    static_cast<float>(baseComponent.rect.y),
                    static_cast<float>(baseComponent.zOrder)},
@@ -254,54 +217,48 @@ std::vector<SpriteInstance> Renderer::record_sprite_draw_list(const Canvas *canv
           quadRenderer.color.b,
           quadRenderer.color.a,
         },
-    };
-
+    });
     counter++;
   });
 
-  return instanceList;
+  return counter;
 }
 
-std::vector<FontGlyphInstance> Renderer::record_glyph_draw_list(const Canvas *canvas)
+size_t Renderer::record_glyph_draw_list(const Canvas *canvas,
+                                        std::vector<FontGlyphInstance> &outInstances)
 {
   const auto world = canvas->entity.world();
-
   const auto textQuery = world.query<ecs::BaseComponent, TextComponent>();
-  const size_t glyphCount = get_text_render_instance_count_from_query(textQuery);
 
-  std::vector<FontGlyphInstance> instanceList(glyphCount);
+  // Reserve space to avoid reallocations
+  outInstances.clear();
+  outInstances.reserve(MAX_GLYPH_COUNT);
+
   size_t counter = 0;
 
-  if (instanceList.empty()) {
-    return instanceList;
-  }
-
-  textQuery.each([&instanceList, &counter](ecs::Entity e,
+  textQuery.each([&outInstances, &counter](ecs::Entity e,
                                            const ecs::BaseComponent &baseComponent,
                                            const TextComponent &textComponent) {
     const auto textView = std::string_view(textComponent.text);
     const auto fontData = textComponent.font;
     const auto fontSize = static_cast<float>(textComponent.pixelSize);
-    const auto textureSize = Vector2f {
-      static_cast<float>(fontData->atlas.atlasDimensions.x),
-      static_cast<float>(fontData->atlas.atlasDimensions.y)
-    };
+    const auto textureSize =
+      Vector2f{static_cast<float>(fontData->atlas.atlasDimensions.x),
+               static_cast<float>(fontData->atlas.atlasDimensions.y)};
 
-    constexpr Color4f color = {1.0f, 1.0f, 1.0f, 1.0f};
-    const auto lineHeight = fontData->metrics.lineHeight;
-
+    const Color4f color = textComponent.color;
 
     float currentAdvance = 0.0f;
-    float currentBaselineY = static_cast<float>(baseComponent.rect.y) +
-      (fontData->metrics.ascender * fontSize);
+    float currentBaselineY =
+      static_cast<float>(baseComponent.rect.y) + (fontData->metrics.ascender * fontSize);
 
     const char *strPtr = textView.data();
     size_t strLen = textView.size();
 
-    while (strLen > 0) {
+    while (strLen > 0 && counter < MAX_GLYPH_COUNT) {
       const uint32_t unicodeValue = SDL_StepUTF8(&strPtr, &strLen);
 
-      // Handle space character separately
+      // Handle space character separately (no glyph bounds, only advance)
       if (unicodeValue == GLYPH_CHARACTER_SPACE) {
         currentAdvance += SPACE_ADVANCE_MULTIPLIER * fontSize;
         continue;
@@ -310,8 +267,6 @@ std::vector<FontGlyphInstance> Renderer::record_glyph_draw_list(const Canvas *ca
       // Check if glyph exists in the font atlas
       auto glyphIt = fontData->glyphs.find(unicodeValue);
       if (glyphIt == fontData->glyphs.end()) {
-        // Skip missing glyphs
-        // TODO: show missing character glyph
         continue;
       }
       const auto &glyphData = glyphIt->second;
@@ -333,27 +288,50 @@ std::vector<FontGlyphInstance> Renderer::record_glyph_draw_list(const Canvas *ca
         (atlasHeight - glyphData.atlasBounds.bottom) / atlasHeight,
       };
 
-
-      instanceList[counter] = {
-        .position = {
+      outInstances.emplace_back(FontGlyphInstance{
+        .position =
+          {
             .x = static_cast<float>(baseComponent.rect.x) + currentAdvance + pl,
             .y = currentBaselineY - pt,
             .z = static_cast<float>(baseComponent.zOrder),
-        },
-        .size = {
+          },
+        .size =
+          {
             .x = quadWidth,
             .y = quadHeight,
-        },
+          },
         .textureCoords = textureCoords,
         .color = color,
-    };
+      });
 
       currentAdvance += glyphData.advance * fontSize;
       counter++;
     }
   });
 
-  return instanceList;
+  return counter;
+}
+
+const glm::mat4 &Renderer::get_camera_matrix(DrawDataStorage &storage,
+                                             uint16_t windowWidth,
+                                             uint16_t windowHeight)
+{
+  // Return cached matrix if window dimensions haven't changed
+  if (storage.cameraMatrixValid && storage.lastWindowWidth == windowWidth &&
+      storage.lastWindowHeight == windowHeight) {
+    return storage.cachedCameraMatrix;
+  }
+
+  // Calculate new camera matrix
+  storage.cachedCameraMatrix =
+    glm::orthoZO(0.0f, static_cast<float>(windowWidth), static_cast<float>(windowHeight),
+                 0.0f, -1000.0f, 1000.0f);
+
+  storage.lastWindowWidth = windowWidth;
+  storage.lastWindowHeight = windowHeight;
+  storage.cameraMatrixValid = true;
+
+  return storage.cachedCameraMatrix;
 }
 
 DrawPipeline Renderer::create_draw_pipeline(const RendererData *renderer,
@@ -364,7 +342,7 @@ DrawPipeline Renderer::create_draw_pipeline(const RendererData *renderer,
   auto *gpuDevice = renderer->internals.gpuDevice;
   auto *window = renderer->internals.sdlWindowPtr;
 
-  // SPRITE RENDER PIPELINE ////////////////////////////
+  // SPRITE RENDER PIPELINE
   constexpr auto SPRITE_VS_PATH = "res/shaders/_compiled/SPIRV/batch_render.vert.spv";
   constexpr auto SPRITE_FS_PATH = "res/shaders/_compiled/SPIRV/batch_render.frag.spv";
 
@@ -395,14 +373,10 @@ DrawPipeline Renderer::create_draw_pipeline(const RendererData *renderer,
   pipeline.spriteDataPipeline =
     SDL_CreateGPUGraphicsPipeline(gpuDevice, &pipelineCreateInfo);
 
-  // Cleanup shaders
   destroyShader(spriteVertexShader, renderer);
   destroyShader(spriteFragmentShader, renderer);
 
-  // Build render pipeline
-  const auto spriteDrawList = record_sprite_draw_list(canvas);
-
-  // Create data transfer buffer
+  // Create sprite data transfer buffer
   constexpr SDL_GPUTransferBufferCreateInfo transferBufferInfo = {
     .usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD,
     .size = static_cast<uint32_t>(MAX_SPRITE_COUNT * sizeof(SpriteInstance))};
@@ -410,16 +384,12 @@ DrawPipeline Renderer::create_draw_pipeline(const RendererData *renderer,
   pipeline.spriteDataTransferBuffer =
     SDL_CreateGPUTransferBuffer(gpuDevice, &transferBufferInfo);
 
-  // Create data buffer
+  // Create sprite data buffer
   constexpr SDL_GPUBufferCreateInfo bufferCreateInfo = {
     .usage = SDL_GPU_BUFFERUSAGE_GRAPHICS_STORAGE_READ,
     .size = static_cast<uint32_t>(MAX_SPRITE_COUNT * sizeof(SpriteInstance))};
 
   pipeline.spriteDataBuffer = SDL_CreateGPUBuffer(gpuDevice, &bufferCreateInfo);
-
-  // Record size for rendering
-  pipeline.spriteDrawListSize = spriteDrawList.size();
-  // END SPRITE RENDER PIPELINE ////////////////////////////
 
   // Create text render pipeline
   create_text_render_pipeline(renderer, canvas, &pipeline);
@@ -433,7 +403,6 @@ RendererData Renderer::createRenderer(const Window *window, const Canvas *canvas
 
   renderer.internals.sdlWindowPtr = window->ptr;
 
-  // Create GPU device
   SDL_Log("Creating GPU device...\n");
 
   renderer.internals.gpuDevice =
@@ -452,22 +421,28 @@ RendererData Renderer::createRenderer(const Window *window, const Canvas *canvas
 
   renderer.drawPipeline = create_draw_pipeline(&renderer, canvas);
 
+  // Pre-allocate storage buffers
+  renderer.storage.spriteInstances.reserve(MAX_SPRITE_COUNT);
+  renderer.storage.glyphInstances.reserve(MAX_GLYPH_COUNT);
+
   return renderer;
 }
 
-void Renderer::draw(const Window *window)
+void Renderer::draw(Window *window)
 {
-  // Setup camera matrix
-  const Rect windowBounds = getWindowBounds(window);
-
-  const glm::mat4 cameraMatrix =
-    glm::orthoZO(0.0f, static_cast<float>(windowBounds.width),
-                 static_cast<float>(windowBounds.height), 0.0f, -1000.0f, 1000.0f);
-
-  // Get command buffer
   auto *gpuDevice = window->renderer.internals.gpuDevice;
   auto *windowPtr = window->renderer.internals.sdlWindowPtr;
+  auto &drawPipeline = window->renderer.drawPipeline;
+  auto &storage = window->renderer.storage;
 
+  // Get window bounds for camera matrix
+  const Rect windowBounds = getWindowBounds(window);
+
+  // Get cached camera matrix (only recalculated on resize)
+  const glm::mat4 &cameraMatrix =
+    get_camera_matrix(storage, windowBounds.width, windowBounds.height);
+
+  // Get command buffer
   SDL_GPUCommandBuffer *cmd = SDL_AcquireGPUCommandBuffer(gpuDevice);
 
   if (cmd == nullptr) {
@@ -483,113 +458,99 @@ void Renderer::draw(const Window *window)
     return;
   }
 
-  if (swapchainTexture != nullptr) {
-    auto &drawPipeline = window->renderer.drawPipeline;
-
-    // Upload sprite instances
-    const auto spriteDrawList = record_sprite_draw_list(&window->canvas);
-    
-    if (spriteDrawList.size() > MAX_SPRITE_COUNT) {
-      UI_LOG_MSG("Warning: Sprite count (%zu) exceeds MAX_SPRITE_COUNT (%u). Clamping.",
-                 spriteDrawList.size(), MAX_SPRITE_COUNT);
-    }
-    const size_t spriteCountToRender = std::min(spriteDrawList.size(), static_cast<size_t>(MAX_SPRITE_COUNT));
-    
-    const auto spriteDataPtr = static_cast<SpriteInstance *>(
-      SDL_MapGPUTransferBuffer(gpuDevice, drawPipeline.spriteDataTransferBuffer, true));
-
-    for (size_t i = 0; i < spriteCountToRender; i++) {
-      spriteDataPtr[i] = spriteDrawList[i];
-    }
-
-    SDL_UnmapGPUTransferBuffer(gpuDevice, drawPipeline.spriteDataTransferBuffer);
-
-    // Upload font glyph instances
-    const auto textDrawList = record_glyph_draw_list(&window->canvas);
-    
-    if (textDrawList.size() > MAX_GLYPH_COUNT) {
-      UI_LOG_MSG("Warning: Glyph count (%zu) exceeds MAX_GLYPH_COUNT (%u). Clamping.",
-                 textDrawList.size(), MAX_GLYPH_COUNT);
-    }
-    const size_t glyphCountToRender = std::min(textDrawList.size(), static_cast<size_t>(MAX_GLYPH_COUNT));
-    
-    const auto textDataPtr = static_cast<FontGlyphInstance *>(
-      SDL_MapGPUTransferBuffer(gpuDevice, drawPipeline.textTransferBuffer, true));
-
-    for (size_t i = 0; i < glyphCountToRender; i++) {
-      textDataPtr[i] = textDrawList[i];
-    }
-
-    SDL_UnmapGPUTransferBuffer(gpuDevice, drawPipeline.textTransferBuffer);
-
-    // Upload sprite instance data
-    SDL_GPUCopyPass *spriteCopyPass = SDL_BeginGPUCopyPass(cmd);
-
-    const SDL_GPUTransferBufferLocation spriteTransferBufferLocation = {
-      .transfer_buffer = drawPipeline.spriteDataTransferBuffer, .offset = 0};
-
-    const SDL_GPUBufferRegion spriteBufferRegion = {
-      .buffer = drawPipeline.spriteDataBuffer,
-      .offset = 0,
-      .size = static_cast<uint32_t>(spriteCountToRender * sizeof(SpriteInstance))};
-
-    SDL_UploadToGPUBuffer(spriteCopyPass, &spriteTransferBufferLocation,
-                          &spriteBufferRegion, true);
-
-
-    SDL_EndGPUCopyPass(spriteCopyPass);
-
-    // Upload text instance data
-    SDL_GPUCopyPass *fontCopyPass = SDL_BeginGPUCopyPass(cmd);
-
-    const SDL_GPUTransferBufferLocation textTransferBufferLocation = {
-      .transfer_buffer = drawPipeline.textTransferBuffer, .offset = 0};
-
-    const SDL_GPUBufferRegion textBufferRegion = {
-      .buffer = drawPipeline.textBuffer,
-      .offset = 0,
-      .size = static_cast<uint32_t>(glyphCountToRender * sizeof(FontGlyphInstance))};
-
-    SDL_UploadToGPUBuffer(fontCopyPass, &textTransferBufferLocation, &textBufferRegion,
-                          true);
-
-    SDL_EndGPUCopyPass(fontCopyPass);
-
-    // Render everything
-    const SDL_GPUColorTargetInfo colorTargetInfo = {
-      .texture = swapchainTexture,
-      .clear_color = {0.0f, 0.0f, 0.0f, 1.0f},
-      .load_op = SDL_GPU_LOADOP_CLEAR,
-      .store_op = SDL_GPU_STOREOP_STORE,
-      .cycle = false,
-    };
-
-    SDL_GPURenderPass *renderPass =
-      SDL_BeginGPURenderPass(cmd, &colorTargetInfo, 1, nullptr);
-
-    SDL_PushGPUVertexUniformData(cmd, 0, &cameraMatrix, sizeof(glm::mat4));
-
-    // SPRITE RENDERING ////////////////////////
-    SDL_BindGPUGraphicsPipeline(renderPass, drawPipeline.spriteDataPipeline);
-    SDL_BindGPUVertexStorageBuffers(renderPass, 0, &drawPipeline.spriteDataBuffer, 1);
-    SDL_DrawGPUPrimitives(renderPass, spriteCountToRender * 6, 1, 0, 0);
-    // END SPRITE RENDERING ////////////////////////
-
-    // TEXT RENDERING ////////////////////////
-    SDL_BindGPUGraphicsPipeline(renderPass, drawPipeline.textPipeline);
-    SDL_BindGPUVertexStorageBuffers(renderPass, 0, &drawPipeline.textBuffer, 1);
-
-    const SDL_GPUTextureSamplerBinding fontAtlasTexBinding = {
-      .texture = drawPipeline.fontAtlasTexture,
-      .sampler = drawPipeline.fontAtlasSampler,
-    };
-    SDL_BindGPUFragmentSamplers(renderPass, 0, &fontAtlasTexBinding, 1);
-
-    SDL_DrawGPUPrimitives(renderPass, glyphCountToRender * 6, 1, 0, 0);
-    // END TEXT RENDERING ////////////////////////
-
-    SDL_EndGPURenderPass(renderPass);
+  if (swapchainTexture == nullptr) {
+    return;
   }
 
+  // Record sprite draw list into pre-allocated storage
+  const size_t spriteCountToRender =
+    record_sprite_draw_list(&window->canvas, storage.spriteInstances);
+
+  // Record glyph draw list into pre-allocated storage
+  const size_t glyphCountToRender =
+    record_glyph_draw_list(&window->canvas, storage.glyphInstances);
+
+  // Map both transfer buffers
+  auto *spriteDataPtr = static_cast<SpriteInstance *>(
+    SDL_MapGPUTransferBuffer(gpuDevice, drawPipeline.spriteDataTransferBuffer, true));
+  auto *textDataPtr = static_cast<FontGlyphInstance *>(
+    SDL_MapGPUTransferBuffer(gpuDevice, drawPipeline.textTransferBuffer, true));
+
+  // Copy data to transfer buffers
+  if (spriteCountToRender > 0) {
+    SDL_memcpy(spriteDataPtr, storage.spriteInstances.data(),
+               spriteCountToRender * sizeof(SpriteInstance));
+  }
+
+  if (glyphCountToRender > 0) {
+    SDL_memcpy(textDataPtr, storage.glyphInstances.data(),
+               glyphCountToRender * sizeof(FontGlyphInstance));
+  }
+
+  SDL_UnmapGPUTransferBuffer(gpuDevice, drawPipeline.spriteDataTransferBuffer);
+  SDL_UnmapGPUTransferBuffer(gpuDevice, drawPipeline.textTransferBuffer);
+
+  // Single copy pass for both sprite and text data
+  SDL_GPUCopyPass *copyPass = SDL_BeginGPUCopyPass(cmd);
+
+  // Upload sprite instance data
+  const SDL_GPUTransferBufferLocation spriteTransferBufferLocation = {
+    .transfer_buffer = drawPipeline.spriteDataTransferBuffer, .offset = 0};
+
+  const SDL_GPUBufferRegion spriteBufferRegion = {
+    .buffer = drawPipeline.spriteDataBuffer,
+    .offset = 0,
+    .size = static_cast<uint32_t>(spriteCountToRender * sizeof(SpriteInstance))};
+
+  SDL_UploadToGPUBuffer(copyPass, &spriteTransferBufferLocation, &spriteBufferRegion,
+                        false); // false = not last transfer
+
+  // Upload text instance data
+  const SDL_GPUTransferBufferLocation textTransferBufferLocation = {
+    .transfer_buffer = drawPipeline.textTransferBuffer, .offset = 0};
+
+  const SDL_GPUBufferRegion textBufferRegion = {
+    .buffer = drawPipeline.textBuffer,
+    .offset = 0,
+    .size = static_cast<uint32_t>(glyphCountToRender * sizeof(FontGlyphInstance))};
+
+  SDL_UploadToGPUBuffer(copyPass, &textTransferBufferLocation, &textBufferRegion,
+                        true); // true = last transfer
+
+  SDL_EndGPUCopyPass(copyPass);
+
+  // Render everything
+  const SDL_GPUColorTargetInfo colorTargetInfo = {
+    .texture = swapchainTexture,
+    .clear_color = {0.0f, 0.0f, 0.0f, 1.0f},
+    .load_op = SDL_GPU_LOADOP_CLEAR,
+    .store_op = SDL_GPU_STOREOP_STORE,
+    .cycle = false,
+  };
+
+  SDL_GPURenderPass *renderPass =
+    SDL_BeginGPURenderPass(cmd, &colorTargetInfo, 1, nullptr);
+
+  // Push camera matrix uniform (once for both passes)
+  SDL_PushGPUVertexUniformData(cmd, 0, &cameraMatrix, sizeof(glm::mat4));
+
+  // SPRITE RENDERING
+  SDL_BindGPUGraphicsPipeline(renderPass, drawPipeline.spriteDataPipeline);
+  SDL_BindGPUVertexStorageBuffers(renderPass, 0, &drawPipeline.spriteDataBuffer, 1);
+  SDL_DrawGPUPrimitives(renderPass, spriteCountToRender * 6, 1, 0, 0);
+
+  // TEXT RENDERING
+  SDL_BindGPUGraphicsPipeline(renderPass, drawPipeline.textPipeline);
+  SDL_BindGPUVertexStorageBuffers(renderPass, 0, &drawPipeline.textBuffer, 1);
+
+  const SDL_GPUTextureSamplerBinding fontAtlasTexBinding = {
+    .texture = drawPipeline.fontAtlasTexture,
+    .sampler = drawPipeline.fontAtlasSampler,
+  };
+  SDL_BindGPUFragmentSamplers(renderPass, 0, &fontAtlasTexBinding, 1);
+
+  SDL_DrawGPUPrimitives(renderPass, glyphCountToRender * 6, 1, 0, 0);
+
+  SDL_EndGPURenderPass(renderPass);
   SDL_SubmitGPUCommandBuffer(cmd);
 }

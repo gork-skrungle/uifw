@@ -7,6 +7,16 @@
 
 #include <chrono>
 
+static ui::Color4f lerpColor(const ui::Color4f& a, const ui::Color4f& b, const float t)
+{
+  return {
+    a.r + (b.r - a.r) * t,
+    a.g + (b.g - a.g) * t,
+    a.b + (b.b - a.b) * t,
+    a.a + (b.a - a.a) * t
+  };
+}
+
 int main()
 {
   ui::initPlatform();
@@ -39,13 +49,23 @@ int main()
   });
 
   const auto framerateEntity = ui::TextHelpers::createTextEntity(
-    &window.ecsRoot, &fontData, "Framerate: ", 16, 3, 3, 50, 250, "FramerateText");
+    &window.ecsRoot, &fontData, "Framerate: ", {1.0, 1.0, 0.0, 1.0}, 16, 3, 3, 50, 250, "FramerateText");
 
-  for (int i = 32; i > 12; i -= 1) {
+  size_t currentY = 36;
+
+  constexpr ui::Color4f gradientStart = {1.0f, 1.0f, 1.0f, 1.0f};
+  constexpr ui::Color4f gradientEnd = {0.5f, 0.5f, 0.5f, 1.0f};
+
+  for (uint32_t i = 0; i < 20; ++i) {
     const std::string name = std::string("TextEntity") + std::to_string(i);
+    const float t = static_cast<float>(i) / 19.0f;
+    const ui::Color4f color = lerpColor(gradientStart, gradientEnd, t);
+
     ui::TextHelpers::createTextEntity(&window.ecsRoot, &fontData,
-                                      "Pack my box with five-dozen liquor jugs. `~!@#$$%^&*()_+-=", i, 0, 0,
-                                      128, 128, name.c_str(), &e1);
+                                      "Pack my box with five-dozen liquor jugs.", color,
+                                      20, 16, currentY, 128, 128, name.c_str());
+
+    currentY += 26 * static_cast<uint32_t>(fontData.metrics.lineHeight); // Font size = 20
   }
 
   const auto e2 = ui::ecs::createEntity(&window.ecsRoot, 0, 0, 50, 50, "Entity2",

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "UI/GFX/Renderer/RendererTypes.hpp"
 #include "Utils.hpp"
 
 #include <SDL3/SDL.h>
@@ -27,6 +28,7 @@ struct TextComponent
   const char* text = "TextComponent";
   FontData* font = nullptr;
 
+  Color4f color = {1.0f, 1.0f, 1.0f, 1.0f};
   uint16_t pixelSize = 13;
 
   TextHAlignment horizontalAlignment = TextHAlignment_Left;
