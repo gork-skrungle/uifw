@@ -22,6 +22,9 @@
 #define UI_VALIDATION_ENABLED false
 #endif
 
+// Unicode Character (U+0020) Space (SP)
+#define GLYPH_CHARACTER_SPACE 0x20
+
 constexpr uint32_t MAX_SPRITE_COUNT = 8192;
 constexpr uint32_t MAX_GLYPH_COUNT = 8192;
 
@@ -118,7 +121,7 @@ void Renderer::create_text_render_pipeline(const RendererData *renderer,
   //
   SDL_Surface *imageData = Image::loadImageFromPath(
     "res/fonts/_generated/JetBrainsMono.png",
-    SDL_PIXELFORMAT_ABGR8888);
+    SDL_PIXELFORMAT_ARGB8888);
 
   if (imageData == nullptr) {
     UI_LOG_MSG("No font atlas could be loaded. Exiting...");
@@ -154,9 +157,9 @@ void Renderer::create_text_render_pipeline(const RendererData *renderer,
   pipeline->fontAtlasTexture = SDL_CreateGPUTexture(gpuDevice, &atlasTexCreateInfo);
 
   constexpr SDL_GPUSamplerCreateInfo atlasSamplerCreateInfo = {
-    .min_filter = SDL_GPU_FILTER_NEAREST,
-    .mag_filter = SDL_GPU_FILTER_NEAREST,
-    .mipmap_mode = SDL_GPU_SAMPLERMIPMAPMODE_NEAREST,
+    .min_filter = SDL_GPU_FILTER_LINEAR,
+    .mag_filter = SDL_GPU_FILTER_LINEAR,
+    .mipmap_mode = SDL_GPU_SAMPLERMIPMAPMODE_LINEAR,
     .address_mode_u = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE,
     .address_mode_v = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE,
     .address_mode_w = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE,
@@ -279,8 +282,12 @@ std::vector<FontGlyphInstance> Renderer::record_glyph_draw_list(const Canvas *ca
     };
 
     constexpr Color4f color = {1.0f, 1.0f, 1.0f, 1.0f};
+    const auto lineHeight = fontData->metrics.lineHeight;
+
 
     float currentAdvance = 0.0f;
+    float currentBaselineY = static_cast<float>(baseComponent.rect.y) +
+      (fontData->metrics.ascender * fontSize);
 
     const char *strPtr = textView.data();
     size_t strLen = textView.size();
@@ -288,19 +295,21 @@ std::vector<FontGlyphInstance> Renderer::record_glyph_draw_list(const Canvas *ca
     while (strLen > 0) {
       const uint32_t unicodeValue = SDL_StepUTF8(&strPtr, &strLen);
       const auto &glyphData = fontData->glyphs[unicodeValue];
-      
-      // TODO: Support multiple alignments
-      const float x =
-        static_cast<float>(baseComponent.rect.x) + glyphData.planeBounds.left;
-      const float y =
-        static_cast<float>(baseComponent.rect.y) + glyphData.planeBounds.top;
 
-      const float width =
-        (glyphData.planeBounds.right - glyphData.planeBounds.left) * fontSize;
-      const float height =
-        (glyphData.planeBounds.top - glyphData.planeBounds.bottom) * fontSize;
+      if (unicodeValue == GLYPH_CHARACTER_SPACE) {
+        currentAdvance += 0.59999999999999998f * fontSize;
+        continue;
+      }
 
-      const float atlasHeight = fontData->atlas.atlasDimensions.y;
+      const float pl = glyphData.planeBounds.left * fontSize;
+      const float pt = glyphData.planeBounds.top * fontSize;
+      const float pr = glyphData.planeBounds.right * fontSize;
+      const float pb = glyphData.planeBounds.bottom * fontSize;
+
+      const float quadWidth = pr - pl;
+      const float quadHeight = pt - pb;
+
+      const float atlasHeight = textureSize.y;
 
       const Vector4f textureCoords = {
         glyphData.atlasBounds.left / textureSize.x,
@@ -309,21 +318,20 @@ std::vector<FontGlyphInstance> Renderer::record_glyph_draw_list(const Canvas *ca
         (atlasHeight - glyphData.atlasBounds.bottom) / atlasHeight,
       };
 
+
       instanceList[counter] = {
-        .position =
-          {
-            .x = x + currentAdvance,
-            .y = y,
+        .position = {
+            .x = static_cast<float>(baseComponent.rect.x) + currentAdvance + pl,
+            .y = currentBaselineY - pt,
             .z = static_cast<float>(baseComponent.zOrder),
-          },
-        .size =
-          {
-            .x = width,
-            .y = height,
-          },
+        },
+        .size = {
+            .x = quadWidth,
+            .y = quadHeight,
+        },
         .textureCoords = textureCoords,
         .color = color,
-      };
+    };
 
       currentAdvance += glyphData.advance * fontSize;
       counter++;

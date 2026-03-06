@@ -6,6 +6,8 @@ add_subdirectory(extern)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 20)
 
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O2")
+
 add_library(uifw STATIC
   src/UI/Window/Window.cpp
   src/UI/Window/Window.hpp

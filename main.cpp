@@ -5,6 +5,8 @@
 #include "UI/IO/Text/FontLoader.hpp"
 #include "UI/Window/Window.hpp"
 
+#include <chrono>
+
 int main()
 {
   ui::initPlatform();
@@ -36,9 +38,15 @@ int main()
     .spacing = 0,
   });
 
-  ui::TextHelpers::createTextEntity(&window.ecsRoot, &fontData,
-                                    "Pack my box with five-dozen liquor jugs.", 16, 0, 0,
-                                    128, 128, "TextEntity", &e1);
+  const auto framerateEntity = ui::TextHelpers::createTextEntity(
+    &window.ecsRoot, &fontData, "Framerate: ", 16, 3, 3, 50, 250, "FramerateText");
+
+  for (int i = 32; i > 12; i -= 1) {
+    const std::string name = std::string("TextEntity") + std::to_string(i);
+    ui::TextHelpers::createTextEntity(&window.ecsRoot, &fontData,
+                                      "Pack my box with five-dozen liquor jugs. `~!@#$$%^&*()_+-=", i, 0, 0,
+                                      128, 128, name.c_str(), &e1);
+  }
 
   const auto e2 = ui::ecs::createEntity(&window.ecsRoot, 0, 0, 50, 50, "Entity2",
                                         &window.canvas.entity);
@@ -63,10 +71,10 @@ int main()
   e6Base->minWidth = 100;
   e6Base->maxWidth = 100;
 
-  constexpr ui::ecs::Color red = {1.0, 0.0, 0.0, 1.0};
-  constexpr ui::ecs::Color green = {0.0, 1.0, 0.0, 1.0};
-  constexpr ui::ecs::Color blue = {0.0, 0.0, 1.0, 1.0};
-  constexpr ui::ecs::Color white = {1.0, 1.0, 1.0, 1.0};
+  constexpr ui::ecs::Color red = {0.0, 0.0, 0.0, 1.0};
+  constexpr ui::ecs::Color green = {0.1, 0.1, 0.1, 1.0};
+  constexpr ui::ecs::Color blue = {0.75, 0.75, 1.75, 1.0};
+  constexpr ui::ecs::Color white = {0.5, 0.5, 0.5, 1.0};
 
   e1.add<ui::ecs::QuadRenderer>();
   e2.add<ui::ecs::QuadRenderer>();
@@ -81,10 +89,18 @@ int main()
   e6.get_ref<ui::ecs::QuadRenderer>()->color = red;
   /* --------------------------------------------------------------------- */
 
-  while (true) {
-    if (!ui::updateWindow(&window)) {
-      break;
-    }
+  auto framerateTextComponent = framerateEntity.get_ref<ui::TextComponent>();
+  auto lastFrameTime = std::chrono::high_resolution_clock::now();
+
+  while (ui::updateWindow(&window)) {
+    auto currentFrameTime = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> deltaTime = currentFrameTime - lastFrameTime;
+    lastFrameTime = currentFrameTime;
+
+    auto fps = static_cast<uint32_t>(1.0 / deltaTime.count());
+    std::string fpsString = "FPS:" + std::to_string(fps);
+
+    framerateTextComponent->text = fpsString.c_str();
   }
 
   return EXIT_SUCCESS;
