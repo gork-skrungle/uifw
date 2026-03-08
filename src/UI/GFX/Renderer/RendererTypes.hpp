@@ -6,12 +6,30 @@
 
 namespace ui {
 
+/* ---- Integer vector types ---- */
 struct Vector2i
 {
   uint16_t x;
   uint16_t y;
 };
 
+struct Vector3i
+{
+  uint16_t x;
+  uint16_t y;
+  uint16_t z;
+};
+
+struct Vector4i
+{
+  uint16_t x;
+  uint16_t y;
+  uint16_t z;
+  uint16_t w;
+};
+/* ------------------------------ */
+
+/* ---- Floating point vector types ---- */
 struct Vector2f
 {
   float x;
@@ -40,7 +58,9 @@ struct Color4f
   float b;
   float a;
 };
+/* ------------------------------ */
 
+/* ---- GPU drawing types ---- */
 struct Vertex
 {
   Vector3f position;
@@ -65,5 +85,6 @@ struct FontGlyphInstance
   Vector4f textureCoords;
   Color4f color;
 };
+/* ------------------------------ */
 
 }

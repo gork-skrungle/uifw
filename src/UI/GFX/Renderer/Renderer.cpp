@@ -189,7 +189,7 @@ size_t Renderer::record_sprite_draw_list(const Window *window,
   const InputState &inputState = window->inputState;
 
   const auto world = canvas.entity.world();
-  const auto quadQuery = world.query<ecs::BaseComponent, ecs::QuadRenderer>();
+  const auto quadQuery = world.query<ecs::BaseComponent, ecs::QuadRendererComponent>();
 
   // Reserve space to avoid reallocations
   const size_t estimatedCount = quadQuery.count();
@@ -202,7 +202,7 @@ size_t Renderer::record_sprite_draw_list(const Window *window,
 
   quadQuery.each([&inputState, &outInstances, &counter](
                    ecs::Entity e, const ecs::BaseComponent &baseComponent,
-                   const ecs::QuadRenderer &quadRenderer) {
+                   const ecs::QuadRendererComponent &quadRenderer) {
     if (counter >= MAX_SPRITE_COUNT) {
       return;
     }
@@ -213,15 +213,6 @@ size_t Renderer::record_sprite_draw_list(const Window *window,
       quadRenderer.color.b,
       quadRenderer.color.a,
     };
-
-    if (e.has<ecs::HoverHandlerComponent>()) {
-      const auto &hoverHandler = e.get<ecs::HoverHandlerComponent>();
-
-      if (hoverHandler.overridesColor &&
-          InputHelpers::isMouseInRectComponent(inputState, baseComponent.rect)) {
-        color = hoverHandler.colorOverride;
-      }
-    }
 
     outInstances.emplace_back(SpriteInstance{
       .position = {static_cast<float>(baseComponent.rect.x),

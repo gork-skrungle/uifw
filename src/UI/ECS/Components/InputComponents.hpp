@@ -4,10 +4,22 @@
 
 namespace ui::ecs {
 
+enum CursorShape
+{
+  CursorShape_Default,
+  CursorShape_Hide,
+  CursorShape_Pointer,
+  CursorShape_Grab,
+  CursorShape_Move,
+  CursorShape_VerticalResize,
+  CursorShape_HorizontalResize,
+};
+
 struct HoverHandlerComponent
 {
-  bool overridesColor = false;
-  Color4f colorOverride = {1.0f, 1.0f, 1.0f, 1.0f};
+  CursorShape cursorShape = CursorShape_Pointer;
 };
+
+struct ButtonComponent {};
 
 }

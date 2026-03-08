@@ -2,6 +2,7 @@
 
 #include "UI/Canvas/Canvas.hpp"
 #include "UI/GFX/Renderer/Renderer.hpp"
+#include "UI/ECS/Components/StyleComponents.hpp"
 
 #include <SDL3/SDL.h>
 
@@ -12,12 +13,13 @@ namespace ui {
 
 struct Window
 {
+  bool needsRelayout = true;
   SDL_Window *ptr = nullptr;
   RendererData renderer;
   Canvas canvas;
   ecs::ECSRoot ecsRoot;
   InputState inputState;
-  bool needsRelayout = true;
+  AppStyle appStyle;
 };
 
 void initPlatform();

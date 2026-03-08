@@ -64,6 +64,9 @@ void ui::initializeWindow(const char *title,
   // Create ui::Renderer
   window->renderer = Renderer::createRenderer(window, &window->canvas);
 
+  // Create app style
+  window->appStyle = Style::getDefaultAppStyle();
+
   // Apply initial window layout
   relayout(window);
 }
@@ -96,19 +99,6 @@ bool ui::updateWindow(Window *window)
 
   if (inputState.windowResized) {
     relayout(window);
-  }
-
-  if (inputState.mouseMoved) {
-    UI_LOG_MSG("[INPUT EVENT]: Mouse moved: [%i, %i]", inputState.mousePosition.x,
-               inputState.mousePosition.y);
-  }
-
-  if (inputState.mouseDown) {
-    UI_LOG_MSG("[INPUT EVENT]: Mouse down");
-  }
-
-  if (inputState.mouseUp) {
-    UI_LOG_MSG("[INPUT EVENT]: Mouse up");
   }
 
   Renderer::draw(window);

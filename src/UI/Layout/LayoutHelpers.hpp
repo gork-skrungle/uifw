@@ -21,7 +21,8 @@ public:
 
 private:
   static void layout_children(const ecs::Entity &parent,
-                              std::queue<ecs::Entity> &entityQueue);
+                              std::queue<ecs::Entity> &entityQueue,
+                              uint16_t nIteration);
 
   static void clamp_value(uint16_t *value, uint16_t min, uint16_t max);
 };

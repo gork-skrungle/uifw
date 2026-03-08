@@ -57,6 +57,7 @@ add_executable(sdl3-ui-test
   src/UI/IO/Input/Input.hpp
   src/UI/ECS/Components/InputComponents.hpp
   src/UI/IO/Input/InputHelpers.hpp
+  src/UI/ECS/Components/StyleComponents.hpp
 )
 
 target_link_libraries(sdl3-ui-test PRIVATE

@@ -138,7 +138,7 @@ TEST_CASE("Horizontal layout with constraint")
   CHECK(canvas.entity.get<ecs::BaseComponent>().transformRel.nChildren == 3);
 
   // Apply layout
-  ui::layoutChildren(canvas.entity);
+  ui::Layout::traverseAndApplyLayout(canvas.entity);
 
   auto validateComponent = [](ecs::Entity entity, uint16_t expectedWidth) {
     const auto baseComponent = entity.get<ui::ecs::BaseComponent>();
@@ -190,7 +190,7 @@ TEST_CASE("Basic vertical layout")
   CHECK(canvas.entity.get<ecs::BaseComponent>().transformRel.nChildren == 3);
 
   // Apply layout
-  ui::layoutChildren(canvas.entity);
+  ui::Layout::traverseAndApplyLayout(canvas.entity);
 
   auto validateComponent = [](ecs::Entity entity) {
     const auto baseComponent = entity.get<ui::ecs::BaseComponent>();
@@ -250,7 +250,7 @@ TEST_CASE("Vertical layout with constraint")
   CHECK(canvas.entity.get<ecs::BaseComponent>().transformRel.nChildren == 3);
 
   // Apply layout
-  ui::layoutChildren(canvas.entity);
+  ui::Layout::traverseAndApplyLayout(canvas.entity);
 
   auto validateComponent = [](ecs::Entity entity, uint16_t expectedHeight) {
     const auto baseComponent = entity.get<ui::ecs::BaseComponent>();

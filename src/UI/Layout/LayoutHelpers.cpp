@@ -12,15 +12,19 @@ void Layout::traverseAndApplyLayout(const ecs::Entity &rootEntity)
   std::queue<ecs::Entity> queue;
   queue.push(rootEntity);
 
+  uint16_t nIteration = 0;
+
   while (!queue.empty()) {
     const ecs::Entity currentEntity = queue.front();
-    layout_children(currentEntity, queue);
+    layout_children(currentEntity, queue, nIteration);
     queue.pop();
+    nIteration++;
   }
 }
 
 void Layout::layout_children(const ecs::Entity &parent,
-                             std::queue<ecs::Entity> &entityQueue)
+                             std::queue<ecs::Entity> &entityQueue,
+                             uint16_t nIteration)
 {
   if (!parent.has<LayoutComponent>()) {
     return;
@@ -182,6 +186,11 @@ void Layout::layout_children(const ecs::Entity &parent,
     }
     children[i]->needsUpdate = false;
     currentPosition += computedSizes[i] + spacing;
+  }
+
+  // Set z order
+  for (size_t i = 0; i < nChildren; ++i) {
+    children[i]->zOrder = nIteration;
   }
 }
 

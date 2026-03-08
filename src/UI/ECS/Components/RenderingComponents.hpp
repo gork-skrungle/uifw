@@ -10,7 +10,7 @@ struct Color
   float a = 1.0f;
 };
 
-struct QuadRenderer
+struct QuadRendererComponent
 {
   Color color;
 };

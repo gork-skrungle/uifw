@@ -8,6 +8,7 @@
 #include <chrono>
 
 #include "UI/ECS/Components/InputComponents.hpp"
+#include "UI/Layout/LayoutHelpers.hpp"
 
 static ui::Color4f lerpColor(const ui::Color4f &a, const ui::Color4f &b, const float t)
 {
@@ -80,6 +81,37 @@ int main()
   secondaryLayout->spacing = 10;
 
   const auto e4 = ui::ecs::createEntity(&window.ecsRoot, 0, 0, 50, 50, "Entity4", &e3);
+  e4.set<ui::LayoutComponent>({
+    .type = ui::LayoutType_Vertical,
+    .margins = {5, 5, 5, 5},
+    .spacing = 3,
+  });
+
+  /* ---------------- Create button ---------------- */
+  const auto button =
+    ui::ecs::createEntity(&window.ecsRoot, 0, 0, 50, 50, "ButtonEntity", &e4);
+
+  button.set<ui::ecs::QuadRendererComponent>({
+    .color = {0.36f, 0.36f, 0.36f, 1.0f},
+  });
+  button.add<ui::ecs::HoverHandlerComponent>();
+  button.add<ui::ecs::ButtonComponent>();
+
+  button.set<ui::TextComponent>({
+    .text = "Button 1",
+    .font = &fontData,
+    .color = {0.94f, 0.94f, 0.94f, 1.0f},
+    .pixelSize = 14,
+  });
+
+  auto buttonBaseComponent = button.get_ref<ui::ecs::BaseComponent>();
+  buttonBaseComponent->inLayout = true;
+  buttonBaseComponent->minHeight = 23;
+  buttonBaseComponent->maxHeight = 23;
+  buttonBaseComponent->minWidth = 75;
+  buttonBaseComponent->maxWidth = 75;
+  /* ----------------------------------------------- */
+
   const auto e5 = ui::ecs::createEntity(&window.ecsRoot, 0, 0, 50, 50, "Entity5", &e3);
   const auto e6 = ui::ecs::createEntity(&window.ecsRoot, 0, 0, 50, 50, "Entity6", &e3);
 
@@ -95,22 +127,17 @@ int main()
   constexpr ui::ecs::Color blue = {0.75f, 0.75f, 1.75f, 1.0f};
   constexpr ui::ecs::Color white = {0.5f, 0.5f, 0.5f, 1.0f};
 
-  e1.add<ui::ecs::QuadRenderer>();
-  e2.add<ui::ecs::QuadRenderer>();
-  e4.add<ui::ecs::QuadRenderer>();
-  e5.add<ui::ecs::QuadRenderer>();
-  e6.add<ui::ecs::QuadRenderer>();
+  e1.add<ui::ecs::QuadRendererComponent>();
+  e2.add<ui::ecs::QuadRendererComponent>();
+  //e4.add<ui::ecs::QuadRendererComponent>();
+  e5.add<ui::ecs::QuadRendererComponent>();
+  e6.add<ui::ecs::QuadRendererComponent>();
 
-  e1.get_ref<ui::ecs::QuadRenderer>()->color = red;
-  e2.get_ref<ui::ecs::QuadRenderer>()->color = green;
-  e4.get_ref<ui::ecs::QuadRenderer>()->color = blue;
-  e5.get_ref<ui::ecs::QuadRenderer>()->color = white;
-  e6.get_ref<ui::ecs::QuadRenderer>()->color = red;
-
-  e6.set<ui::ecs::HoverHandlerComponent>({
-    .overridesColor = true,
-    .colorOverride = {0.75f, 0.75f, 1.75f, 1.0f},
-  });
+  e1.get_ref<ui::ecs::QuadRendererComponent>()->color = red;
+  e2.get_ref<ui::ecs::QuadRendererComponent>()->color = green;
+  //e4.get_ref<ui::ecs::QuadRendererComponent>()->color = blue;
+  e5.get_ref<ui::ecs::QuadRendererComponent>()->color = white;
+  e6.get_ref<ui::ecs::QuadRendererComponent>()->color = red;
   /* --------------------------------------------------------------------- */
 
   auto framerateTextComponent = framerateEntity.get_ref<ui::TextComponent>();
