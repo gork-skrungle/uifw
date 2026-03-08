@@ -7,6 +7,12 @@
 
 #include <chrono>
 
+#include "UI/ECS/Components/InputComponents.hpp"
+#include "UI/Layout/LayoutHelpers.hpp"
+
+#define DEMO_WINDOW_WIDTH 1280
+#define DEMO_WINDOW_HEIGHT 720
+
 static ui::Color4f lerpColor(const ui::Color4f &a, const ui::Color4f &b, const float t)
 {
   return {a.r + (b.r - a.r) * t, a.g + (b.g - a.g) * t, a.b + (b.b - a.b) * t,
@@ -18,7 +24,7 @@ int main()
   ui::initPlatform();
 
   ui::Window window;
-  ui::initializeWindow("UIFW Window", 1280, 720, &window);
+  ui::initializeWindow("UIFW Window", DEMO_WINDOW_WIDTH, DEMO_WINDOW_HEIGHT, &window);
 
   ui::FontData fontData = ui::FontLoader::loadFont(
     "res/fonts/_generated/JetBrainsMono.png", "res/fonts/_generated/JetBrainsMono.json");
@@ -78,6 +84,52 @@ int main()
   secondaryLayout->spacing = 10;
 
   const auto e4 = ui::ecs::createEntity(&window.ecsRoot, 0, 0, 50, 50, "Entity4", &e3);
+  e4.set<ui::LayoutComponent>({
+    .type = ui::LayoutType_Vertical,
+    .margins = {5, 5, 5, 5},
+    .spacing = 3,
+  });
+
+  /* ---------------- Create buttons ---------------- */
+  constexpr size_t BUTTON_COUNT = 5;
+
+  std::vector<std::string> buttonEntityNames(BUTTON_COUNT);
+  std::vector<std::string> buttonLabels(BUTTON_COUNT);
+
+  for (size_t i = 0; i < BUTTON_COUNT; ++i) {
+    const size_t canonicalIndex = i + 1;
+
+    buttonEntityNames[i] = "ButtonEntity" + std::to_string(canonicalIndex);
+    buttonLabels[i] = "Button " + std::to_string(canonicalIndex);
+
+    const auto button = ui::ecs::createEntity(&window.ecsRoot, 0, 0, 50, 50,
+                                              buttonEntityNames[i].c_str(), &e4);
+
+    button.set<ui::ecs::QuadRendererComponent>({
+      .color = {0.36f, 0.36f, 0.36f, 1.0f},
+    });
+    button.add<ui::ecs::HoverHandlerComponent>();
+    button.add<ui::ecs::ButtonComponent>();
+
+    button.set<ui::TextComponent>({
+      .text = buttonLabels[i].c_str(),
+      .font = &fontData,
+      .color = {0.94f, 0.94f, 0.94f, 1.0f},
+      .pixelSize = 14,
+    });
+
+    auto buttonBaseComponent = button.get_ref<ui::ecs::BaseComponent>();
+    buttonBaseComponent->inLayout = true;
+    buttonBaseComponent->minHeight = 23;
+    buttonBaseComponent->maxHeight = 23;
+    buttonBaseComponent->minWidth = 75;
+    buttonBaseComponent->maxWidth = 75;
+  }
+
+  // Add spacer
+  ui::ecs::createEntity(&window.ecsRoot, 0, 0, 50, 50, "Spacer", &e4);
+  /* ----------------------------------------------- */
+
   const auto e5 = ui::ecs::createEntity(&window.ecsRoot, 0, 0, 50, 50, "Entity5", &e3);
   const auto e6 = ui::ecs::createEntity(&window.ecsRoot, 0, 0, 50, 50, "Entity6", &e3);
 
@@ -88,23 +140,25 @@ int main()
   e6Base->minWidth = 100;
   e6Base->maxWidth = 100;
 
-  constexpr ui::ecs::Color red = {0.25, 0.25, 0.25, 1.25};
-  constexpr ui::ecs::Color green = {0.1, 0.1, 0.1, 1.0};
-  constexpr ui::ecs::Color blue = {0.75, 0.75, 1.75, 1.0};
-  constexpr ui::ecs::Color white = {0.5, 0.5, 0.5, 1.0};
+  constexpr ui::ecs::Color red = {0.25f, 0.25f, 0.25f, 1.0f};
+  constexpr ui::ecs::Color green = {0.1f, 0.1f, 0.1f, 1.0f};
+  constexpr ui::ecs::Color blue = {0.75f, 0.75f, 1.75f, 1.0f};
+  constexpr ui::ecs::Color white = {0.5f, 0.5f, 0.5f, 1.0f};
 
-  e1.add<ui::ecs::QuadRenderer>();
-  e2.add<ui::ecs::QuadRenderer>();
-  e4.add<ui::ecs::QuadRenderer>();
-  e5.add<ui::ecs::QuadRenderer>();
-  e6.add<ui::ecs::QuadRenderer>();
+  e1.add<ui::ecs::QuadRendererComponent>();
+  e2.add<ui::ecs::QuadRendererComponent>();
+  e4.add<ui::ecs::QuadRendererComponent>();
+  e5.add<ui::ecs::QuadRendererComponent>();
+  e6.add<ui::ecs::QuadRendererComponent>();
 
-  e1.get_ref<ui::ecs::QuadRenderer>()->color = red;
-  e2.get_ref<ui::ecs::QuadRenderer>()->color = green;
-  e4.get_ref<ui::ecs::QuadRenderer>()->color = blue;
-  e5.get_ref<ui::ecs::QuadRenderer>()->color = white;
-  e6.get_ref<ui::ecs::QuadRenderer>()->color = red;
+  e1.get_ref<ui::ecs::QuadRendererComponent>()->color = red;
+  e2.get_ref<ui::ecs::QuadRendererComponent>()->color = green;
+  e4.get_ref<ui::ecs::QuadRendererComponent>()->color = blue;
+  e5.get_ref<ui::ecs::QuadRendererComponent>()->color = white;
+  e6.get_ref<ui::ecs::QuadRendererComponent>()->color = red;
   /* --------------------------------------------------------------------- */
+
+  ui::relayout(&window, DEMO_WINDOW_WIDTH, DEMO_WINDOW_HEIGHT);
 
   auto framerateTextComponent = framerateEntity.get_ref<ui::TextComponent>();
   auto lastFrameTime = std::chrono::high_resolution_clock::now();

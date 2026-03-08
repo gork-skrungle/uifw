@@ -10,12 +10,12 @@ mkdir -p "./_compiled/SPIRV/"
 
 for filename in *.vert.hlsl; do
     if [ -f "$filename" ]; then
-        shadercross "$filename" -o "_compiled/SPIRV/${filename/.hlsl/.spv}"
+        ../../bin/shadercross/linux/shadercross "$filename" -o "_compiled/SPIRV/${filename/.hlsl/.spv}"
     fi
 done
 
 for filename in *.frag.hlsl; do
     if [ -f "$filename" ]; then
-        shadercross "$filename" -o "_compiled/SPIRV/${filename/.hlsl/.spv}"
+        ../../bin/shadercross/linux/shadercross "$filename" -o "_compiled/SPIRV/${filename/.hlsl/.spv}"
     fi
 done

@@ -3,6 +3,7 @@
 #include "UI/Canvas/Canvas.hpp"
 #include "UI/GFX/Renderer/Renderer.hpp"
 #include "UI/GFX/Shader.hpp"
+#include "UI/IO/Input/Input.hpp"
 #include "UI/Layout/LayoutHelpers.hpp"
 
 #include <SDL3/SDL_gpu.h>
@@ -10,6 +11,7 @@
 #include <stdexcept>
 
 #include "UI/ECS/Components/BaseComponent.hpp"
+#include "UI/IO/Input/InputHelpers.hpp"
 
 void ui::initPlatform()
 {
@@ -23,6 +25,8 @@ void ui::initPlatform()
   if (SDL_Init(SDL_INIT_VIDEO) == false) {
     throw std::runtime_error("Unable to initialize SDL.");
   }
+
+  InputHelpers::initSystemCursors();
 }
 
 ui::Rect ui::getWindowBounds(const Window *window)
@@ -62,19 +66,33 @@ void ui::initializeWindow(const char *title,
 
   // Create ui::Renderer
   window->renderer = Renderer::createRenderer(window, &window->canvas);
+
+  // Create app style
+  window->appStyle = Style::getDefaultAppStyle();
+
+  // Apply initial window layout
+  relayout(window);
 }
 
-void ui::relayout(const Window *window)
+void ui::relayout(const Window *window, const uint16_t width, const uint16_t height)
 {
-  const auto windowBounds = ui::getWindowBounds(window);
-  const auto canvasRoot = window->canvas.entity;
+  const auto &canvasRoot = window->canvas.entity;
+  Vector2i windowSize = {width, height};
 
-  auto baseComponent = canvasRoot.get_ref<ui::ecs::BaseComponent>();
+  if (width < 1 || height < 1) {
+    const auto &inputState = window->inputState;
+    windowSize = {
+      .x = inputState.windowSize.x,
+      .y = inputState.windowSize.y,
+    };
+  }
+
+  auto baseComponent = canvasRoot.get_ref<ecs::BaseComponent>();
   baseComponent->rect = {
     .x = 0,
     .y = 0,
-    .width = windowBounds.width,
-    .height = windowBounds.height
+    .width = windowSize.x,
+    .height = windowSize.y,
   };
 
   Layout::traverseAndApplyLayout(canvasRoot);
@@ -82,26 +100,18 @@ void ui::relayout(const Window *window)
 
 bool ui::updateWindow(Window *window)
 {
-  SDL_Event event;
+  Input::pollEvents(&window->inputState, window);
+  const auto& inputState = window->inputState;
 
-  while (SDL_PollEvent(&event)) {
-    switch (event.type) {
-      case SDL_EVENT_WINDOW_RESIZED:
-        window->needsRelayout = true;
-        break;
-      case SDL_EVENT_QUIT:
-        SDL_DestroyWindow(window->ptr);
-        return false;
-      default:
-        break;
-    }
+  if (inputState.shouldQuit) {
+    return false;
   }
 
-  if (window->needsRelayout) {
+  if (inputState.windowResized) {
     relayout(window);
-    window->needsRelayout = false;
   }
 
+  InputHelpers::processEvents(window);
   Renderer::draw(window);
 
   return true;
