@@ -8,6 +8,11 @@ struct Color
   float g = 1.0f;
   float b = 1.0f;
   float a = 1.0f;
+
+  bool operator==(const Color & color) const
+  {
+    return r == color.r && g == color.g && b == color.b && a == color.a;
+  }
 };
 
 struct QuadRendererComponent

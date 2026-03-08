@@ -2,7 +2,7 @@
 
 #include "UI/GFX/Renderer/RendererTypes.hpp"
 
-namespace ui::ecs {
+namespace ui {
 
 enum CursorShape
 {
@@ -15,11 +15,16 @@ enum CursorShape
   CursorShape_HorizontalResize,
 };
 
+namespace ecs {
+
 struct HoverHandlerComponent
 {
   CursorShape cursorShape = CursorShape_Pointer;
 };
 
-struct ButtonComponent {};
+struct ButtonComponent
+{};
 
-}
+} // namespace ecs
+
+} // namespace ui

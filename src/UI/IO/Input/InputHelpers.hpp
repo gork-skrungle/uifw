@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Input.hpp"
+#include "UI/ECS/Components/InputComponents.hpp"
 #include "UI/Layout/LayoutTypes.hpp"
 
 namespace ui {
@@ -8,15 +9,13 @@ namespace ui {
 class InputHelpers
 {
 public:
-  static bool isMouseInRectComponent(const InputState &state, const Rect &rect)
-  {
-    const auto &[p_x, p_y] = state.mousePosition;
+  static void initSystemCursors();
+  static void processEvents(const Window *window);
+  static void cleanupSystemCursors();
 
-    return p_x >= rect.x &&
-           p_x <= rect.x + rect.width &&
-           p_y >= rect.y &&
-           p_y <= rect.y + rect.height;
-  }
+private:
+  static bool is_mouse_in_rect_component(const Vector2i &mousePos, const Rect &rect);
+  static void process_cursor_update(const CursorShape &cursorShape);
 };
 
 } // namespace ui

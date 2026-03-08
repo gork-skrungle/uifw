@@ -11,6 +11,7 @@
 #include <stdexcept>
 
 #include "UI/ECS/Components/BaseComponent.hpp"
+#include "UI/IO/Input/InputHelpers.hpp"
 
 void ui::initPlatform()
 {
@@ -24,6 +25,8 @@ void ui::initPlatform()
   if (SDL_Init(SDL_INIT_VIDEO) == false) {
     throw std::runtime_error("Unable to initialize SDL.");
   }
+
+  InputHelpers::initSystemCursors();
 }
 
 ui::Rect ui::getWindowBounds(const Window *window)
@@ -101,6 +104,7 @@ bool ui::updateWindow(Window *window)
     relayout(window);
   }
 
+  InputHelpers::processEvents(window);
   Renderer::draw(window);
 
   return true;
