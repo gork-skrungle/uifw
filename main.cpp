@@ -87,29 +87,44 @@ int main()
     .spacing = 3,
   });
 
-  /* ---------------- Create button ---------------- */
-  const auto button =
-    ui::ecs::createEntity(&window.ecsRoot, 0, 0, 50, 50, "ButtonEntity", &e4);
+  /* ---------------- Create buttons ---------------- */
+  constexpr size_t BUTTON_COUNT = 5;
 
-  button.set<ui::ecs::QuadRendererComponent>({
-    .color = {0.36f, 0.36f, 0.36f, 1.0f},
-  });
-  button.add<ui::ecs::HoverHandlerComponent>();
-  button.add<ui::ecs::ButtonComponent>();
+  std::vector<std::string> buttonEntityNames(BUTTON_COUNT);
+  std::vector<std::string> buttonLabels(BUTTON_COUNT);
 
-  button.set<ui::TextComponent>({
-    .text = "Button 1",
-    .font = &fontData,
-    .color = {0.94f, 0.94f, 0.94f, 1.0f},
-    .pixelSize = 14,
-  });
+  for (size_t i = 0; i < BUTTON_COUNT; ++i) {
+    const size_t canonicalIndex = i + 1;
 
-  auto buttonBaseComponent = button.get_ref<ui::ecs::BaseComponent>();
-  buttonBaseComponent->inLayout = true;
-  buttonBaseComponent->minHeight = 23;
-  buttonBaseComponent->maxHeight = 23;
-  buttonBaseComponent->minWidth = 75;
-  buttonBaseComponent->maxWidth = 75;
+    buttonEntityNames[i] = "ButtonEntity" + std::to_string(canonicalIndex);
+    buttonLabels[i] = "Button " + std::to_string(canonicalIndex);
+
+    const auto button = ui::ecs::createEntity(&window.ecsRoot, 0, 0, 50, 50,
+                                              buttonEntityNames[i].c_str(), &e4);
+
+    button.set<ui::ecs::QuadRendererComponent>({
+      .color = {0.36f, 0.36f, 0.36f, 1.0f},
+    });
+    button.add<ui::ecs::HoverHandlerComponent>();
+    button.add<ui::ecs::ButtonComponent>();
+
+    button.set<ui::TextComponent>({
+      .text = buttonLabels[i].c_str(),
+      .font = &fontData,
+      .color = {0.94f, 0.94f, 0.94f, 1.0f},
+      .pixelSize = 14,
+    });
+
+    auto buttonBaseComponent = button.get_ref<ui::ecs::BaseComponent>();
+    buttonBaseComponent->inLayout = true;
+    buttonBaseComponent->minHeight = 23;
+    buttonBaseComponent->maxHeight = 23;
+    buttonBaseComponent->minWidth = 75;
+    buttonBaseComponent->maxWidth = 75;
+  }
+
+  // Add spacer
+  ui::ecs::createEntity(&window.ecsRoot, 0, 0, 50, 50, "Spacer", &e4);
   /* ----------------------------------------------- */
 
   const auto e5 = ui::ecs::createEntity(&window.ecsRoot, 0, 0, 50, 50, "Entity5", &e3);
