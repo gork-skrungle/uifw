@@ -49,15 +49,18 @@ static inline void uifw_InternalLog(const uifw_LogLevel level, const char *fmt, 
 }
 
 /* ---- LOG MACROS ---- */
+
 #define ui_Log(level, ...) uifw_InternalLog(level, __VA_ARGS__)
 
 #define ui_LogInfo(...)    uifw_InternalLog(UIFW_LOG_LEVEL_INFO, __VA_ARGS__)
 #define ui_LogWarn(...)    uifw_InternalLog(UIFW_LOG_LEVEL_WARN, __VA_ARGS__)
 #define ui_LogError(...)   uifw_InternalLog(UIFW_LOG_LEVEL_ERROR, __VA_ARGS__)
 #define ui_LogFatal(...)   uifw_InternalLog(UIFW_LOG_LEVEL_FATAL, __VA_ARGS__)
+
 /* -------------------- */
 
 /* ---- DEBUG BREAKPOINT ---- */
+
 #if defined(UIFW_DEBUG)
 #define ui_TriggerBreakpoint() SDL_TriggerBreakpoint()
 #else
@@ -82,4 +85,5 @@ static inline void uifw_InternalLog(const uifw_LogLevel level, const char *fmt, 
 #else
 #define ui_Assert(condition, ...) ((void)0);
 #endif
+
 /* -------------------- */

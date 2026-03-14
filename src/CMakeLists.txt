@@ -25,6 +25,7 @@ add_library(uifw STATIC
   uifw/UI/Layout/Layout.h
   uifw/Core/Containers/Queue.h
   uifw/Core/Containers/Queue.c
+  uifw/GFX/Renderer/RendererTypes.h
 )
 
 target_link_libraries(uifw PUBLIC
