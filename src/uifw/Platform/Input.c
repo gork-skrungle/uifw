@@ -5,7 +5,7 @@
 
 void ui_resetWindowInputState(ui_Window *window)
 {
-  ui_InputState *inputState = &window->inputState;
+  ui_InputState *inputState = &window->input_state;
 
   inputState->shouldQuit = false;
   inputState->windowResized = false;
@@ -17,7 +17,7 @@ void ui_pollWindowEvents(ui_Window *window)
 {
   ui_resetWindowInputState(window);
 
-  ui_InputState *inputState = &window->inputState;
+  ui_InputState *inputState = &window->input_state;
   SDL_Event event;
 
   while (SDL_PollEvent(&event)) {

@@ -1,4 +1,7 @@
 #pragma once
+
+#include <cglm/cglm.h>
+
 #include <stdint.h>
 
 /* ---- Integer vector types ---- */
@@ -59,9 +62,7 @@ typedef struct
 
 /* ------------------------------ */
 
-/**
- * Rect type containing x position, y position, width, and height
- */
+
 typedef struct
 {
   uint16_t x;
@@ -83,3 +84,10 @@ typedef struct
   uint16_t bottom;
   uint16_t left;
 } ui_LayoutPadding;
+
+/* ---- MATRIX MATH ---- */
+
+typedef mat4 ui_Matrix4;
+#define ui_Matrix4SetIdentity(m) glm_mat4_identity(m)
+
+/* --------------------- */

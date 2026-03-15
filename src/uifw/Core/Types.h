@@ -1,6 +1,9 @@
 #pragma once
 
 #include "uifw/Core/Coordinates.h"
+#include "uifw/GFX/Renderer/RendererTypes.h"
+#include "uifw/ECS/Entity.h"
+#include "uifw/ECS/World.h"
 
 #include <SDL3/SDL.h>
 
@@ -47,14 +50,22 @@ typedef struct
   ui_Vector2i mousePosition;
 } ui_InputState;
 
+typedef struct
+{
+  ui_ECS_World *world;
+  ui_ECS_Entity root_canvas;
+} ui_Scene;
+
 /**
  * Native OS window
  */
 typedef struct
 {
   size_t id;
-  SDL_Window *sdlWindow;
-  ui_InputState inputState;
+  SDL_Window *sdl_window;
+  ui_Scene scene;
+  ui_Renderer *renderer;
+  ui_InputState input_state;
 } ui_Window;
 
 /**

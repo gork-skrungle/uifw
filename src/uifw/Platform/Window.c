@@ -5,6 +5,9 @@
 
 #include <stdlib.h>
 
+#include "uifw/GFX/Renderer/Renderer.h"
+#include "uifw/UI/Canvas/Canvas.h"
+
 ui_Window *ui_createWindow(const ui_WindowParams params, ui_Application *app)
 {
   // Re-allocate app window list array
@@ -28,15 +31,15 @@ ui_Window *ui_createWindow(const ui_WindowParams params, ui_Application *app)
 
   ui_LogInfo("Creating window...");
 
-  currentWindow->sdlWindow =
+  currentWindow->sdl_window =
     SDL_CreateWindow(params.title, params.width, params.height, SDL_WINDOW_RESIZABLE);
 
-  if (!currentWindow->sdlWindow) {
+  if (!currentWindow->sdl_window) {
     ui_LogFatal("Failed to create window: %s", SDL_GetError());
     return nullptr;
   }
 
-  SDL_ShowWindow(currentWindow->sdlWindow);
+  SDL_ShowWindow(currentWindow->sdl_window);
 
   currentWindow->id = currentIndex;
 
@@ -52,6 +55,28 @@ ui_Window *ui_createWindow(const ui_WindowParams params, ui_Application *app)
   // Zero initialize input state
   ui_resetWindowInputState(currentWindow);
 
+  // Init ECS world
+  currentWindow->scene.world = ecs_init();
+  currentWindow->scene.root_canvas = UI_NULL_ENTITY;
+
+  // Create canvas
+  uint16_t canvasWidth, canvasHeight;
+  ui_getWindowSize(currentWindow, &canvasWidth, &canvasHeight);
+
+  const ui_LayoutPadding defaultPadding = {
+    .left = 5,
+    .right = 5,
+    .top = 5,
+    .bottom = 5,
+  };
+  constexpr uint16_t defaultSpacing = 5;
+
+  currentWindow->scene.root_canvas = ui_ECS_createCanvas(
+    LayoutType_Vertical, defaultPadding, defaultSpacing, currentWindow);
+
+  // Initialize renderer
+  ui_rendererCreate(currentWindow);
+
   return currentWindow;
 }
 
@@ -60,7 +85,7 @@ void ui_updateWindow(ui_Window *window)
   // Poll input events
   ui_pollWindowEvents(window);
 
-  const ui_InputState *inputState = &window->inputState;
+  const ui_InputState *inputState = &window->input_state;
 
   if (inputState->mouseDown) {
     ui_LogInfo("Mouse down event");
@@ -69,11 +94,13 @@ void ui_updateWindow(ui_Window *window)
   if (inputState->windowResized) {
     ui_LogInfo("Window resized event");
   }
+
+  ui_rendererDraw(window);
 }
 
 void ui_destroyWindow(ui_Window *window)
 {
-  SDL_DestroyWindow(window->sdlWindow);
+  SDL_DestroyWindow(window->sdl_window);
   ui_LogInfo("Destroying window - ID: %i", window->id);
   window->id = 0;
 }
@@ -81,7 +108,7 @@ void ui_destroyWindow(ui_Window *window)
 void ui_getWindowPosition(const ui_Window *window, uint16_t *x, uint16_t *y)
 {
   int outX, outY;
-  SDL_GetWindowPosition(window->sdlWindow, &outX, &outY);
+  SDL_GetWindowPosition(window->sdl_window, &outX, &outY);
 
   *x = (uint16_t)outX;
   *y = (uint16_t)outY;
@@ -90,7 +117,7 @@ void ui_getWindowPosition(const ui_Window *window, uint16_t *x, uint16_t *y)
 void ui_getWindowSize(const ui_Window *window, uint16_t *width, uint16_t *height)
 {
   int outWidth, outHeight;
-  SDL_GetWindowSize(window->sdlWindow, &outWidth, &outHeight);
+  SDL_GetWindowSize(window->sdl_window, &outWidth, &outHeight);
 
   *width = (uint16_t)outWidth;
   *height = (uint16_t)outHeight;

@@ -26,13 +26,16 @@ add_library(uifw STATIC
   uifw/Core/Containers/Queue.h
   uifw/Core/Containers/Queue.c
   uifw/GFX/Renderer/RendererTypes.h
+  uifw/GFX/Renderer/Renderer.h
+  uifw/GFX/Renderer/Renderer.c
+  uifw/GFX/Renderer/RendererHelpers.h
+  uifw/GFX/Renderer/RendererHelpers.c
 )
 
 target_link_libraries(uifw PUBLIC
   flecs
   SDL3::SDL3-static
-  glm::glm
-  nlohmann_json::nlohmann_json
+  cglm
   stb
 )
 
