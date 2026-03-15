@@ -1,6 +1,5 @@
 add_subdirectory(cglm)
 add_subdirectory(flecs)
-add_subdirectory(glm)
 add_subdirectory(stb)
 
 set(SDL_STATIC ON CACHE BOOL "" FORCE)
