@@ -55,3 +55,8 @@ typedef struct
 {
 
 } ui_ECS_RenderDataComponent;
+
+typedef struct
+{
+  ui_Color4f color;
+} ui_ECS_QuadRendererComponent;

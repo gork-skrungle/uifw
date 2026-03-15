@@ -1,5 +1,6 @@
 #include "RendererHelpers.h"
 
+#include "uifw/ECS/Components.h"
 #include "uifw/GFX/Shader.h"
 
 #define SPRITE_VS_PATH "res/shaders/_compiled/SPIRV/batch_render.vert.spv"
@@ -87,4 +88,42 @@ void ui_Renderer_createSpriteDrawPipeline(ui_Renderer *renderer,
 
   // Set pointer in renderer
   renderer->sprite_pipeline = pipeline;
+}
+
+void ui_Renderer_rebuildSpriteDrawList(ui_Renderer *renderer, ui_ECS_World *world)
+{
+  ECS_COMPONENT(world, ui_ECS_BaseComponent);
+  ECS_COMPONENT(world, ui_ECS_QuadRendererComponent);
+
+  // Zero set initial list
+  const size_t size = renderer->sprite_pipeline->size;
+  memset(renderer->sprite_pipeline->data, 0, size * sizeof(ui_Renderer_SpriteInstance));
+
+  auto outList = (ui_Renderer_SpriteInstance *)renderer->sprite_pipeline->data;
+
+  // Query sprites
+  ecs_query_t *spriteQuery =
+    ecs_query(world, {.terms = {
+      {.id = ecs_id(ui_ECS_BaseComponent)},
+      {.id = ecs_id(ui_ECS_QuadRendererComponent)}
+  }});
+
+  ecs_iter_t it = ecs_query_iter(world, spriteQuery);
+  size_t counter = 0;
+
+  while (ecs_query_next(&it)) {
+    auto base = ecs_field(&it, ui_ECS_BaseComponent, 0);
+    auto quadRenderer = ecs_field(&it, ui_ECS_QuadRendererComponent, 1);
+
+    ui_Renderer_SpriteInstance *outElem = &outList[counter];
+    outElem->position.x = (float)base->coords.x;
+    outElem->position.y = (float)base->coords.y;
+    outElem->position.z = (float)base->zOrder;
+    outElem->rotation = 0.0f; // TODO: Provide actual rotation value
+    outElem->size.x = (float)base->coords.w;
+    outElem->size.y = (float)base->coords.h;
+    outElem->color = quadRenderer->color;
+
+    ++counter;
+  }
 }

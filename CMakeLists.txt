@@ -6,4 +6,5 @@ set(CMAKE_C_STANDARD 23)
 
 add_subdirectory(extern)
 add_subdirectory(src)
+add_subdirectory(tests)
 add_subdirectory(sample)

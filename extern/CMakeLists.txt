@@ -1,4 +1,5 @@
 add_subdirectory(cglm)
+add_subdirectory(cmocka)
 add_subdirectory(flecs)
 add_subdirectory(stb)
 

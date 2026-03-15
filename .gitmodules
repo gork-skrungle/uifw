@@ -7,3 +7,6 @@
 [submodule "extern/cglm"]
 	path = extern/cglm
 	url = https://github.com/recp/cglm.git
+[submodule "extern/cmocka"]
+	path = extern/cmocka
+	url = https://git.cryptomilk.org/projects/cmocka.git
