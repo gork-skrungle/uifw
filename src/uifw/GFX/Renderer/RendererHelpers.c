@@ -95,9 +95,9 @@ void ui_Renderer_rebuildSpriteDrawList(ui_Renderer *renderer, ui_ECS_World *worl
   ECS_COMPONENT(world, ui_ECS_BaseComponent);
   ECS_COMPONENT(world, ui_ECS_QuadRendererComponent);
 
-  // Zero set initial list
-  const size_t size = renderer->sprite_pipeline->size;
-  memset(renderer->sprite_pipeline->data, 0, size * sizeof(ui_Renderer_SpriteInstance));
+  // Zero out the entire allocated buffer
+  memset(renderer->sprite_pipeline->data, 0,
+         renderer->sprite_pipeline->size * sizeof(ui_Renderer_SpriteInstance));
 
   auto outList = (ui_Renderer_SpriteInstance *)renderer->sprite_pipeline->data;
 
@@ -126,4 +126,10 @@ void ui_Renderer_rebuildSpriteDrawList(ui_Renderer *renderer, ui_ECS_World *worl
 
     ++counter;
   }
+
+  // Update pipeline size and mark as clean
+  renderer->sprite_pipeline->size = counter;
+  renderer->sprite_pipeline->is_dirty = false;
+
+  ecs_query_fini(spriteQuery);
 }
