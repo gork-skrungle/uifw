@@ -37,8 +37,8 @@ void ui_rendererCreate(ui_Window *window)
   renderer->window_ref = window->sdl_window;
   renderer->gpu_device = nullptr;
   renderer->camera_data = cameraData;
-  renderer->num_draw_pipelines = 0;
-  renderer->draw_pipelines = nullptr;
+  renderer->sprite_pipeline = nullptr;
+  renderer->font_pipeline = nullptr;
 
   // Initialize SDL GPU device
   ui_LogInfo("Creating GPU device...");

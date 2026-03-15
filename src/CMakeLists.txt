@@ -30,6 +30,10 @@ add_library(uifw STATIC
   uifw/GFX/Renderer/Renderer.c
   uifw/GFX/Renderer/RendererHelpers.h
   uifw/GFX/Renderer/RendererHelpers.c
+  uifw/Platform/IO/FileUtils.h
+  uifw/Platform/IO/FileUtils.c
+  uifw/GFX/Shader.h
+  uifw/GFX/Shader.c
 )
 
 target_link_libraries(uifw PUBLIC

@@ -77,8 +77,8 @@ typedef struct
   SDL_Window *window_ref;
   SDL_GPUDevice *gpu_device;
   ui_Renderer_CameraData camera_data;
-  size_t num_draw_pipelines;
-  ui_Renderer_DrawPipeline *draw_pipelines;
+  ui_Renderer_DrawPipeline *sprite_pipeline;
+  ui_Renderer_DrawPipeline *font_pipeline;
 } ui_Renderer;
 
 /* ------------------ */
