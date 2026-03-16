@@ -4,14 +4,19 @@
 #include "uifw/Core/Utils/Log.h"
 #include "uifw/ECS/Components.h"
 
-static void clamp_value(uint16_t *value, const uint16_t min, const uint16_t max)
+static int32_t clamp_value_signed(const int32_t value,
+                                  const int32_t min,
+                                  const int32_t max)
 {
-  if (*value < min) {
-    *value = min;
+  if (value < min) {
+    return min;
   }
-  else if (*value > max) {
-    *value = max;
+
+  if (value > max) {
+    return max;
   }
+
+  return value;
 }
 
 static void layout_children(const ui_ECS_Entity *entity,
@@ -80,26 +85,29 @@ static void layout_children(const ui_ECS_Entity *entity,
   }
 
   // Fit components to available space
-  uint16_t availableSpace = 0;
-  uint16_t currentPosition = 0;
+  int32_t availableSpace = 0;
+  int32_t currentPosition = 0;
 
   switch (layoutType) {
   case LayoutType_Horizontal:
-    availableSpace = parentBaseComponent->coords.w - margins.left - margins.right -
-      spacing * (nChildren - 1);
-    currentPosition = parentBaseComponent->coords.x + margins.left;
+    availableSpace = (int32_t)parentBaseComponent->coords.w - (int32_t)margins.left -
+      (int32_t)margins.right - (int32_t)spacing * (int32_t)(nChildren - 1);
+    currentPosition = (int32_t)parentBaseComponent->coords.x + (int32_t)margins.left;
     break;
   case LayoutType_Vertical:
-    availableSpace = parentBaseComponent->coords.h - margins.top - margins.bottom -
-      spacing * (nChildren - 1);
-    currentPosition = parentBaseComponent->coords.y + margins.top;
+    availableSpace = (int32_t)parentBaseComponent->coords.h - (int32_t)margins.top -
+      (int32_t)margins.bottom - (int32_t)spacing * (int32_t)(nChildren - 1);
+    currentPosition = (int32_t)parentBaseComponent->coords.y + (int32_t)margins.top;
     break;
   default:
     break;
   }
 
-  const uint16_t initialSpace = availableSpace;
-  uint16_t computedSizes[nChildren];
+  // Clamp availableSpace to prevent underflow artifacts
+  availableSpace = clamp_value_signed(availableSpace, 0, UINT16_MAX);
+
+  const int32_t initialSpace = availableSpace;
+  int32_t computedSizes[nChildren];
   size_t nRemainingComponents = nChildren;
 
   // Calculate fixed-sized components first
@@ -113,8 +121,11 @@ static void layout_children(const ui_ECS_Entity *entity,
     }
 
     // Fixed size: use minSize as the target (min and max are set to the same value)
-    uint16_t fixedSize = minSize;
-    clamp_value(&fixedSize, minSize, maxSize);
+    int32_t fixedSize = (int32_t)minSize;
+    fixedSize = clamp_value_signed(fixedSize, (int32_t)minSize, (int32_t)maxSize);
+
+    // Ensure fixed size doesn't exceed available space
+    fixedSize = clamp_value_signed(fixedSize, 0, availableSpace);
 
     computedSizes[i] = fixedSize;
     availableSpace -= fixedSize;
@@ -137,8 +148,8 @@ static void layout_children(const ui_ECS_Entity *entity,
       continue;
     }
 
-    uint16_t inferredSize = availableSpace / nRemainingComponents;
-    clamp_value(&inferredSize, minSize, maxSize);
+    int32_t inferredSize = availableSpace / (int32_t)nRemainingComponents;
+    inferredSize = clamp_value_signed(inferredSize, (int32_t)minSize, (int32_t)maxSize);
 
     computedSizes[i] = inferredSize;
     availableSpace -= inferredSize;
@@ -147,34 +158,39 @@ static void layout_children(const ui_ECS_Entity *entity,
   }
 
   // Calculate secondary axis
-  uint16_t secondaryAxisSize = 0;
-  uint16_t secondaryAxisPosition = 0;
+  int32_t secondaryAxisSize = 0;
+  int32_t secondaryAxisPosition = 0;
 
   switch (layoutType) {
   case LayoutType_Horizontal:
-    secondaryAxisSize = parentBaseComponent->coords.h - margins.top - margins.bottom;
-    secondaryAxisPosition = parentBaseComponent->coords.y + margins.top;
+    secondaryAxisSize = (int32_t)parentBaseComponent->coords.h - (int32_t)margins.top -
+      (int32_t)margins.bottom;
+    secondaryAxisPosition = (int32_t)parentBaseComponent->coords.y + (int32_t)margins.top;
     break;
   case LayoutType_Vertical:
-    secondaryAxisSize = parentBaseComponent->coords.w - margins.left - margins.right;
-    secondaryAxisPosition = parentBaseComponent->coords.x + margins.left;
+    secondaryAxisSize = (int32_t)parentBaseComponent->coords.w - (int32_t)margins.left -
+      (int32_t)margins.right;
+    secondaryAxisPosition = (int32_t)parentBaseComponent->coords.x + (int32_t)margins.left;
     break;
   }
+
+  // Clamp secondary axis to prevent underflow
+  secondaryAxisSize = clamp_value_signed(secondaryAxisSize, 0, UINT16_MAX);
 
   // Set sizes
   for (size_t i = 0; i < nChildren; ++i) {
     switch (layoutType) {
     case LayoutType_Horizontal:
-      children[i]->coords.x = currentPosition;
-      children[i]->coords.y = secondaryAxisPosition;
-      children[i]->coords.w = computedSizes[i];
-      children[i]->coords.h = secondaryAxisSize;
+      children[i]->coords.x = (uint16_t)clamp_value_signed(currentPosition, 0, UINT16_MAX);
+      children[i]->coords.y = (uint16_t)clamp_value_signed(secondaryAxisPosition, 0, UINT16_MAX);
+      children[i]->coords.w = (uint16_t)clamp_value_signed(computedSizes[i], 0, UINT16_MAX);
+      children[i]->coords.h = (uint16_t)clamp_value_signed(secondaryAxisSize, 0, UINT16_MAX);
       break;
     case LayoutType_Vertical:
-      children[i]->coords.x = secondaryAxisPosition;
-      children[i]->coords.y = currentPosition;
-      children[i]->coords.w = secondaryAxisSize;
-      children[i]->coords.h = computedSizes[i];
+      children[i]->coords.x = (uint16_t)clamp_value_signed(secondaryAxisPosition, 0, UINT16_MAX);
+      children[i]->coords.y = (uint16_t)clamp_value_signed(currentPosition, 0, UINT16_MAX);
+      children[i]->coords.w = (uint16_t)clamp_value_signed(secondaryAxisSize, 0, UINT16_MAX);
+      children[i]->coords.h = (uint16_t)clamp_value_signed(computedSizes[i], 0, UINT16_MAX);
       break;
     default:
       break;
