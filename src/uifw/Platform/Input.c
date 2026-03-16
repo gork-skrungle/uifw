@@ -3,19 +3,20 @@
 
 #include <SDL3/SDL.h>
 
-void ui_resetWindowInputState(ui_Window *window)
+void ui_resetWindowInputState(ui_Window *window, bool firstFrame)
 {
   ui_InputState *inputState = &window->input_state;
 
-  inputState->shouldQuit = false;
-  inputState->windowResized = false;
-  inputState->mouseMoved = false;
-  inputState->mouseDown = false;
+  inputState->first_frame = firstFrame;
+  inputState->should_quit = false;
+  inputState->window_resized = false;
+  inputState->mouse_moved = false;
+  inputState->mouse_down = false;
 }
 
 void ui_pollWindowEvents(ui_Window *window)
 {
-  ui_resetWindowInputState(window);
+  ui_resetWindowInputState(window, false);
 
   ui_InputState *inputState = &window->input_state;
   ui_Renderer *renderer = window->renderer;
@@ -25,25 +26,25 @@ void ui_pollWindowEvents(ui_Window *window)
   while (SDL_PollEvent(&event)) {
     switch (event.type) {
     case SDL_EVENT_QUIT:
-      inputState->shouldQuit = true;
+      inputState->should_quit = true;
       break;
     case SDL_EVENT_WINDOW_RESIZED:
-      inputState->windowResized = true;
-      inputState->windowSize.x = (uint16_t)event.window.data1;
-      inputState->windowSize.y = (uint16_t)event.window.data2;
+      inputState->window_resized = true;
+      inputState->window_size.x = (uint16_t)event.window.data1;
+      inputState->window_size.y = (uint16_t)event.window.data2;
 
       renderer->is_dirty = true;
       break;
     case SDL_EVENT_MOUSE_MOTION:
-      inputState->mouseMoved = true;
-      inputState->mousePosition.x = (uint16_t)event.motion.x;
-      inputState->mousePosition.y = (uint16_t)event.motion.y;
+      inputState->mouse_moved = true;
+      inputState->mouse_position.x = (uint16_t)event.motion.x;
+      inputState->mouse_position.y = (uint16_t)event.motion.y;
       break;
     case SDL_EVENT_MOUSE_BUTTON_DOWN:
-      inputState->mouseDown = true;
+      inputState->mouse_down = true;
       break;
     case SDL_EVENT_MOUSE_BUTTON_UP:
-      inputState->mouseDown = false;
+      inputState->mouse_down = false;
       break;
     case SDL_EVENT_MOUSE_WHEEL:
       break;

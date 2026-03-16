@@ -119,16 +119,18 @@ void ui_Renderer_rebuildSpriteDrawList(ui_Renderer *renderer,
     auto base = ecs_field(&it, ui_ECS_BaseComponent, 0);
     auto quadRenderer = ecs_field(&it, ui_ECS_QuadRendererComponent, 1);
 
-    ui_Renderer_SpriteInstance *outElem = &outList[counter];
-    outElem->position.x = (float)base->coords.x;
-    outElem->position.y = (float)base->coords.y;
-    outElem->position.z = (float)base->zOrder;
-    outElem->rotation = 0.0f; // TODO: Provide actual rotation value
-    outElem->size.x = (float)base->coords.w;
-    outElem->size.y = (float)base->coords.h;
-    outElem->color = quadRenderer->color;
+    for (int i = 0; i < it.count; ++i) {
+      ui_Renderer_SpriteInstance *outElem = &outList[counter];
+      outElem->position.x = (float)base[i].coords.x;
+      outElem->position.y = (float)base[i].coords.y;
+      outElem->position.z = (float)base[i].zOrder;
+      outElem->rotation = 0.0f; // TODO: Provide actual rotation value
+      outElem->size.x = (float)base[i].coords.w;
+      outElem->size.y = (float)base[i].coords.h;
+      outElem->color = quadRenderer[i].color;
 
-    ++counter;
+      ++counter;
+    }
   }
 
   ecs_query_fini(spriteQuery);

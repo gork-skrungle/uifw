@@ -38,7 +38,7 @@ bool ui_updateApplication(ui_Application *app)
 
     ui_updateWindow(&app->windowList[i]);
 
-    if (window->input_state.shouldQuit) {
+    if (window->input_state.should_quit) {
       return false;
     }
   }

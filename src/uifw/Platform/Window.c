@@ -9,6 +9,12 @@
 #include "uifw/UI/Canvas/Canvas.h"
 #include "uifw/UI/Layout/Layout.h"
 
+static void relayout_window_contents(const ui_Window *window)
+{
+  ui_ECS_resizeCanvasToWindowSize(window);
+  ui_traverseAndApplyLayout(window->scene.world, &window->scene.root_canvas);
+}
+
 ui_Window *ui_createWindow(const ui_WindowParams params, ui_Application *app)
 {
   // Re-allocate app window list array
@@ -54,7 +60,7 @@ ui_Window *ui_createWindow(const ui_WindowParams params, ui_Application *app)
 #endif
 
   // Zero initialize input state
-  ui_resetWindowInputState(currentWindow);
+  ui_resetWindowInputState(currentWindow, true);
 
   // Init ECS world
   currentWindow->scene.world = ecs_init();
@@ -83,19 +89,22 @@ ui_Window *ui_createWindow(const ui_WindowParams params, ui_Application *app)
 
 void ui_updateWindow(ui_Window *window)
 {
+  const ui_InputState *inputState = &window->input_state;
+
+  if (inputState->first_frame) {
+    relayout_window_contents(window);
+  }
+
   // Poll input events
   ui_pollWindowEvents(window);
 
-  const ui_InputState *inputState = &window->input_state;
-
-  if (inputState->mouseDown) {
+  if (inputState->mouse_down) {
     ui_LogInfo("Mouse down event");
   }
 
-  if (inputState->windowResized) {
+  if (inputState->window_resized) {
     ui_LogInfo("Window resized event");
-    ui_ECS_resizeCanvasToWindowSize(window);
-    ui_traverseAndApplyLayout(window->scene.world, &window->scene.root_canvas);
+    relayout_window_contents(window);
   }
 
   ui_rendererDraw(window);

@@ -42,12 +42,13 @@ typedef struct
  */
 typedef struct
 {
-  bool shouldQuit;
-  bool windowResized;
-  bool mouseMoved;
-  bool mouseDown;
-  ui_Vector2i windowSize;
-  ui_Vector2i mousePosition;
+  bool first_frame;
+  bool should_quit;
+  bool window_resized;
+  bool mouse_moved;
+  bool mouse_down;
+  ui_Vector2i window_size;
+  ui_Vector2i mouse_position;
 } ui_InputState;
 
 typedef struct
