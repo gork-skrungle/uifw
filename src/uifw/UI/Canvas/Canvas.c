@@ -31,3 +31,18 @@ ui_ECS_Entity ui_ECS_createCanvas(ui_LayoutType layoutType,
 
   return entity;
 }
+
+void ui_ECS_resizeCanvasToWindowSize(const ui_Window *window)
+{
+  ui_ECS_World *world = window->scene.world;
+  const ui_ECS_Entity canvas = window->scene.root_canvas;
+
+  uint16_t windowWidth, windowHeight;
+  ui_getWindowSize(window, &windowWidth, &windowHeight);
+
+  ECS_COMPONENT(world, ui_ECS_BaseComponent);
+
+  const auto baseComponent = ecs_get_mut(world, canvas, ui_ECS_BaseComponent);
+  baseComponent->coords.w = windowWidth;
+  baseComponent->coords.h = windowHeight;
+}

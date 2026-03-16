@@ -38,8 +38,8 @@ void ui_Renderer_createSpriteDrawPipeline(ui_Renderer *renderer,
   // Allocate structure
   ui_Renderer_DrawPipeline *pipeline = malloc(sizeof(ui_Renderer_DrawPipeline));
   pipeline->type = DrawPipelineType_Sprite;
-  pipeline->is_dirty = true;
-  pipeline->size = 0;
+  pipeline->allocated = 0;
+  pipeline->capacity = maxInstances;
   pipeline->pipeline = nullptr;
   pipeline->transfer_buffer = nullptr;
   pipeline->data_buffer = nullptr;
@@ -90,14 +90,18 @@ void ui_Renderer_createSpriteDrawPipeline(ui_Renderer *renderer,
   renderer->sprite_pipeline = pipeline;
 }
 
-void ui_Renderer_rebuildSpriteDrawList(ui_Renderer *renderer, ui_ECS_World *world)
+void ui_Renderer_rebuildSpriteDrawList(ui_Renderer *renderer,
+                                       ui_ECS_World *world,
+                                       SDL_GPUCommandBuffer *cmd)
 {
   ECS_COMPONENT(world, ui_ECS_BaseComponent);
   ECS_COMPONENT(world, ui_ECS_QuadRendererComponent);
 
+  const size_t pipelineByteCapacity =
+    renderer->sprite_pipeline->capacity * sizeof(ui_Renderer_SpriteInstance);
+
   // Zero out the entire allocated buffer
-  memset(renderer->sprite_pipeline->data, 0,
-         renderer->sprite_pipeline->size * sizeof(ui_Renderer_SpriteInstance));
+  memset(renderer->sprite_pipeline->data, 0, pipelineByteCapacity);
 
   auto outList = (ui_Renderer_SpriteInstance *)renderer->sprite_pipeline->data;
 
@@ -127,9 +131,39 @@ void ui_Renderer_rebuildSpriteDrawList(ui_Renderer *renderer, ui_ECS_World *worl
     ++counter;
   }
 
-  // Update pipeline size and mark as clean
-  renderer->sprite_pipeline->size = counter;
-  renderer->sprite_pipeline->is_dirty = false;
-
   ecs_query_fini(spriteQuery);
+
+  // Update pipeline size and mark as clean
+  ui_Renderer_DrawPipeline *pipeline = renderer->sprite_pipeline;
+
+  pipeline->allocated = counter;
+
+  // Map transfer buffer
+  SDL_GPUDevice *gpuDevice = renderer->gpu_device;
+
+  auto spriteDataPtr = (ui_Renderer_SpriteInstance *)SDL_MapGPUTransferBuffer(
+    gpuDevice, renderer->sprite_pipeline->transfer_buffer, true);
+
+  if (pipeline->allocated > 0) {
+    SDL_memcpy(spriteDataPtr, pipeline->data, pipelineByteCapacity);
+  }
+
+  SDL_UnmapGPUTransferBuffer(gpuDevice, pipeline->transfer_buffer);
+
+  // Upload data to GPU
+  SDL_GPUCopyPass *copyPass = SDL_BeginGPUCopyPass(cmd);
+
+  const SDL_GPUTransferBufferLocation location = {
+    .transfer_buffer = pipeline->transfer_buffer,
+    .offset = 0
+  };
+
+  const SDL_GPUBufferRegion region = {
+    .buffer = pipeline->data_buffer,
+    .offset = 0,
+    .size = pipelineByteCapacity
+  };
+
+  SDL_UploadToGPUBuffer(copyPass, &location, &region, true);
+  SDL_EndGPUCopyPass(copyPass);
 }

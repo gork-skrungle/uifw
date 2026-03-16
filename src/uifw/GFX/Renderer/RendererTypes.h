@@ -26,8 +26,8 @@ typedef enum
 typedef struct
 {
   ui_Renderer_DrawPipelineType type;
-  bool is_dirty;
-  size_t size;
+  size_t allocated;
+  size_t capacity;
 
   SDL_GPUGraphicsPipeline *pipeline;
   SDL_GPUTransferBuffer *transfer_buffer;
@@ -68,15 +68,15 @@ typedef struct
 
 typedef struct
 {
-  bool is_dirty;
   ui_Vector2i last_window_size;
-  ui_Matrix4 view_matrix;
+  ui_Matrix4 proj_matrix;
 } ui_Renderer_CameraData;
 
 typedef struct
 {
   SDL_Window *window_ref;
   SDL_GPUDevice *gpu_device;
+  bool is_dirty;
   ui_Renderer_CameraData camera_data;
   ui_Renderer_DrawPipeline *sprite_pipeline;
   ui_Renderer_DrawPipeline *font_pipeline;

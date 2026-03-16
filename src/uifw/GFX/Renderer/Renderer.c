@@ -1,8 +1,9 @@
 #include "Renderer.h"
 
+#include "cglm/clipspace/ortho_lh_zo.h"
 #include "uifw/Core/Utils/Log.h"
-#include "uifw/Platform/Window.h"
 #include "uifw/GFX/Renderer/RendererHelpers.h"
+#include "uifw/Platform/Window.h"
 
 #if defined(UIFW_DEBUG)
 #define UIFW_VALIDATION_ENABLED true
@@ -23,14 +24,13 @@ void ui_rendererCreate(ui_Window *window)
 {
   // Init camera data
   ui_Renderer_CameraData cameraData;
-  cameraData.is_dirty = true;
 
   uint16_t windowWidth, windowHeight;
   ui_getWindowSize(window, &windowWidth, &windowHeight);
   cameraData.last_window_size.x = windowWidth;
   cameraData.last_window_size.y = windowHeight;
 
-  ui_Matrix4SetIdentity(cameraData.view_matrix);
+  ui_Matrix4SetIdentity(cameraData.proj_matrix);
 
   // Init renderer
   ui_Renderer *renderer = malloc(sizeof(ui_Renderer));
@@ -48,8 +48,7 @@ void ui_rendererCreate(ui_Window *window)
   ui_LogInfo("Created GPU device (Backend: %s)",
              SDL_GetGPUDeviceDriver(renderer->gpu_device));
 
-  if (!SDL_ClaimWindowForGPUDevice(renderer->gpu_device,
-                                   renderer->window_ref)) {
+  if (!SDL_ClaimWindowForGPUDevice(renderer->gpu_device, renderer->window_ref)) {
     ui_LogFatal("Failed to claim GPU device");
     return;
   }
@@ -64,6 +63,9 @@ void ui_rendererCreate(ui_Window *window)
 
 void ui_rendererDraw(const ui_Window *window)
 {
+  ui_Renderer *renderer = window->renderer;
+
+  // Get command buffer/swapchain texture
   SDL_GPUDevice *gpuDevice = window->renderer->gpu_device;
   SDL_Window *windowRef = window->sdl_window;
 
@@ -80,7 +82,7 @@ void ui_rendererDraw(const ui_Window *window)
                                              nullptr)) {
     ui_LogFatal("Failed to acquire GPUSwapchainTexture: %s", SDL_GetError());
     return;
-                                             }
+  }
 
   if (swapchainTexture == nullptr) {
     return;
@@ -94,9 +96,48 @@ void ui_rendererDraw(const ui_Window *window)
     .cycle = false,
   };
 
+  // Update matrix data if needed
+  ui_Renderer_CameraData *cameraData = &renderer->camera_data;
+
+  if (renderer->is_dirty) {
+    uint16_t windowWidth, windowHeight;
+    ui_getWindowSize(window, &windowWidth, &windowHeight);
+
+    cameraData->last_window_size.x = windowWidth;
+    cameraData->last_window_size.y = windowHeight;
+
+    glm_ortho_lh_zo(0.0f, windowWidth, windowHeight, 0.0f, -1000.0f, 1000.0f,
+                    cameraData->proj_matrix);
+  }
+
+  // Update sprite renderer data if needed
+  if (renderer->is_dirty) {
+    ui_Renderer_rebuildSpriteDrawList(renderer, window->scene.world, cmd);
+  }
+
   SDL_GPURenderPass *renderPass =
     SDL_BeginGPURenderPass(cmd, &colorTargetInfo, 1, nullptr);
 
+  /* ---- UNIFORMS ---- */
+
+  SDL_PushGPUVertexUniformData(cmd, 0, &renderer->camera_data.proj_matrix,
+                               sizeof(ui_Matrix4));
+
+  /* ------------------ */
+
+  /* ---- SPRITE RENDERING ---- */
+
+  const ui_Renderer_DrawPipeline *spritePipeline = renderer->sprite_pipeline;
+
+  SDL_BindGPUGraphicsPipeline(renderPass, spritePipeline->pipeline);
+  SDL_BindGPUVertexStorageBuffers(renderPass, 0, &spritePipeline->data_buffer, 1);
+  SDL_DrawGPUPrimitives(renderPass, spritePipeline->allocated * 6, 1, 0, 0);
+
+  /* -------------------------- */
+
   SDL_EndGPURenderPass(renderPass);
   SDL_SubmitGPUCommandBuffer(cmd);
+
+  // Mark renderer state as clean
+  renderer->is_dirty = false;
 }

@@ -7,6 +7,7 @@
 
 #include "uifw/GFX/Renderer/Renderer.h"
 #include "uifw/UI/Canvas/Canvas.h"
+#include "uifw/UI/Layout/Layout.h"
 
 ui_Window *ui_createWindow(const ui_WindowParams params, ui_Application *app)
 {
@@ -93,6 +94,8 @@ void ui_updateWindow(ui_Window *window)
 
   if (inputState->windowResized) {
     ui_LogInfo("Window resized event");
+    ui_ECS_resizeCanvasToWindowSize(window);
+    ui_traverseAndApplyLayout(window->scene.world, &window->scene.root_canvas);
   }
 
   ui_rendererDraw(window);

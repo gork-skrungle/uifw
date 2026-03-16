@@ -41,8 +41,6 @@ bool ui_updateApplication(ui_Application *app)
     if (window->input_state.shouldQuit) {
       return false;
     }
-
-
   }
 
   return true;

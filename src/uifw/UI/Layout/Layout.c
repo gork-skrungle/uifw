@@ -43,11 +43,11 @@ static void layout_children(const ui_ECS_Entity *entity,
 
   ui_ECS_BaseComponent *children[nChildren];
 
+  ui_ECS_Entity currentEntity = parentTransformRel->first;
   auto currentRel =
-    ecs_get_mut(world, parentTransformRel->first, ui_ECS_TransformRelComponent);
+    ecs_get_mut(world, currentEntity, ui_ECS_TransformRelComponent);
 
   for (size_t i = 0; i < nChildren; ++i) {
-    const auto currentEntity = ecs_get_entity(currentRel);
     children[i] = ecs_get_mut(world, currentEntity, ui_ECS_BaseComponent);
 
     if (ecs_has(world, *entity, ui_ECS_LayoutComponent)) {
@@ -58,7 +58,8 @@ static void layout_children(const ui_ECS_Entity *entity,
       break;
     }
 
-    currentRel = ecs_get_mut(world, currentRel->next, ui_ECS_TransformRelComponent);
+    currentEntity = currentRel->next;
+    currentRel = ecs_get_mut(world, currentEntity, ui_ECS_TransformRelComponent);
   }
 
   // Find min/max constraints for current layout axis

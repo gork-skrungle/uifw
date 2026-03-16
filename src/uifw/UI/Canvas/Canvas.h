@@ -8,3 +8,5 @@ ui_ECS_Entity ui_ECS_createCanvas(ui_LayoutType layoutType,
                                   ui_LayoutPadding margins,
                                   uint16_t spacing,
                                   const ui_Window *window);
+
+void ui_ECS_resizeCanvasToWindowSize(const ui_Window *window);

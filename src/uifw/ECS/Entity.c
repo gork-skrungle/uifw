@@ -3,8 +3,8 @@
 #include "uifw/Core/Utils/Log.h"
 #include "uifw/ECS/Components.h"
 
-static inline ui_ECS_Entity find_last_child(ui_ECS_World *world,
-                                            const ui_ECS_TransformRelComponent *parentRel)
+static ui_ECS_Entity find_last_child(ui_ECS_World *world,
+                                     const ui_ECS_TransformRelComponent *parentRel)
 {
   ECS_COMPONENT(world, ui_ECS_TransformRelComponent);
   ui_Assert(parentRel->nChildren > 0);
@@ -40,12 +40,12 @@ ui_ECS_Entity ui_ECS_createEntity(ui_ECS_World *world,
            .maxHeight = UINT16_MAX,
            .zOrder = 0,
            .needsUpdate = false});
-  ecs_add(world, entity, ui_ECS_TransformRelComponent);
+  ecs_set(world, entity, ui_ECS_TransformRelComponent, {0});
 
   // Set parenting
   if (parent != UI_NULL_ENTITY) {
     auto parentRel = ecs_get_mut(world, parent, ui_ECS_TransformRelComponent);
-    auto entityRel = ecs_get_mut(world, parent, ui_ECS_TransformRelComponent);
+    auto entityRel = ecs_get_mut(world, entity, ui_ECS_TransformRelComponent);
 
     entityRel->parent = parent;
 

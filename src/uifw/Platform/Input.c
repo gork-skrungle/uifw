@@ -18,6 +18,8 @@ void ui_pollWindowEvents(ui_Window *window)
   ui_resetWindowInputState(window);
 
   ui_InputState *inputState = &window->input_state;
+  ui_Renderer *renderer = window->renderer;
+
   SDL_Event event;
 
   while (SDL_PollEvent(&event)) {
@@ -29,6 +31,8 @@ void ui_pollWindowEvents(ui_Window *window)
       inputState->windowResized = true;
       inputState->windowSize.x = (uint16_t)event.window.data1;
       inputState->windowSize.y = (uint16_t)event.window.data2;
+
+      renderer->is_dirty = true;
       break;
     case SDL_EVENT_MOUSE_MOTION:
       inputState->mouseMoved = true;
