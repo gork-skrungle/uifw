@@ -8,14 +8,11 @@
 
 void ui_Renderer_pickWindowPresentMode(const ui_Renderer *renderer)
 {
-  SDL_GPUPresentMode presentMode = SDL_GPU_PRESENTMODE_VSYNC;
+  // Use immediate mode for lowest latency
+  SDL_GPUPresentMode presentMode = SDL_GPU_PRESENTMODE_IMMEDIATE;
 
   if (SDL_WindowSupportsGPUPresentMode(renderer->gpu_device, renderer->window_ref,
-                                       SDL_GPU_PRESENTMODE_IMMEDIATE)) {
-    presentMode = SDL_GPU_PRESENTMODE_IMMEDIATE;
-  }
-  else if (SDL_WindowSupportsGPUPresentMode(renderer->gpu_device, renderer->window_ref,
-                                            SDL_GPU_PRESENTMODE_MAILBOX)) {
+                                       SDL_GPU_PRESENTMODE_MAILBOX)) {
     presentMode = SDL_GPU_PRESENTMODE_MAILBOX;
   }
 

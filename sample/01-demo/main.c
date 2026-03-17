@@ -139,6 +139,7 @@ int main()
 
   while (ui_updateApplication(&app)) {
     // User event loop
+    // ...
   }
 
   ui_destroyWindow(window);

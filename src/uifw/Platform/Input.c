@@ -23,7 +23,15 @@ void ui_pollWindowEvents(ui_Window *window)
 
   SDL_Event event;
 
-  while (SDL_PollEvent(&event)) {
+  // Wait briefly for events to reduce CPU usage, then continue rendering
+  const int wait_ms = 1;
+  const bool got_event = SDL_WaitEventTimeout(&event, wait_ms);
+
+  if (!got_event) {
+    return;
+  }
+
+  do {
     switch (event.type) {
     case SDL_EVENT_QUIT:
       inputState->should_quit = true;
@@ -63,5 +71,5 @@ void ui_pollWindowEvents(ui_Window *window)
     default:
       break;
     }
-  }
+  } while (SDL_PollEvent(&event));
 }

@@ -1,7 +1,5 @@
 #include "Application.h"
 
-#include <X11/X.h>
-
 #include "Utils/Log.h"
 #include "uifw/Platform/Window.h"
 
