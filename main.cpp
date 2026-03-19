@@ -27,7 +27,7 @@ int main()
   ui::initializeWindow("UIFW Window", DEMO_WINDOW_WIDTH, DEMO_WINDOW_HEIGHT, &window);
 
   ui::FontData fontData = ui::FontLoader::loadFont(
-    "res/fonts/_generated/JetBrainsMono.png", "res/fonts/_generated/JetBrainsMono.json");
+    "res/fonts/_generated/Roboto.png", "res/fonts/_generated/Roboto.json");
 
   /* ---------------------------- Setup scene ---------------------------- */
   auto layoutComponent = window.canvas.entity.get_ref<ui::LayoutComponent>();
@@ -60,7 +60,7 @@ int main()
   constexpr ui::Color4f gradientEnd = {0.5f, 0.5f, 0.5f, 1.0f};
 
   ui::TextHelpers::createTextEntity(
-    &window.ecsRoot, &fontData, "Pack my box\nwith five-\ndozen liquor\njugs.",
+    &window.ecsRoot, &fontData, "Pack my box\nwith five-\ndozen liquor\njugs.\n!@#$%^&*()_+=",
     {1.0f, 1.0f, 1.0f, 1.0f}, 68, 16, currentY, 128, 128, "BigText");
 
   // for (uint32_t i = 0; i < 20; ++i) {

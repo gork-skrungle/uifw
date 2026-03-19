@@ -69,7 +69,7 @@ void Renderer::create_text_render_pipeline(const RendererData *renderer,
 
   // Load font atlas image
   SDL_Surface *imageData = Image::loadImageFromPath(
-    "res/fonts/_generated/JetBrainsMono.png", SDL_PIXELFORMAT_ARGB8888);
+    "res/fonts/_generated/Roboto.png", SDL_PIXELFORMAT_ARGB8888);
 
   if (imageData == nullptr) {
     UI_LOG_MSG("No font atlas could be loaded. Exiting...");
