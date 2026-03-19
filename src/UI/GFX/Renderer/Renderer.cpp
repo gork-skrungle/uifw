@@ -18,6 +18,7 @@
 
 #include "UI/ECS/Components/InputComponents.hpp"
 #include "UI/IO/Input/InputHelpers.hpp"
+#include "UI/Utils/StringUtils.hpp"
 
 #ifdef UI_DEBUG_ENABLED
 #define UI_VALIDATION_ENABLED true
@@ -238,15 +239,18 @@ size_t Renderer::record_sprite_draw_list(const Window *window,
   return counter;
 }
 
-inline void record_string_text(ecs::Entity e,
-                               const ecs::BaseComponent &baseComponent,
-                               const TextComponent &textComponent,
-                               std::vector<FontGlyphInstance> *outInstances,
-                               size_t *counter)
+inline void record_text_component(ecs::Entity e,
+                                  const ecs::BaseComponent &baseComponent,
+                                  const TextComponent &textComponent,
+                                  std::vector<FontGlyphInstance> *outInstances,
+                                  size_t *counter)
 {
   const auto textView = std::string_view(textComponent.text);
   const auto fontData = textComponent.font;
   const auto fontSize = static_cast<float>(textComponent.pixelSize);
+  const auto lineHeight =
+    fontData->metrics.lineHeight * static_cast<float>(textComponent.pixelSize);
+
   const auto textureSize =
     Vector2f{static_cast<float>(fontData->atlas.atlasDimensions.x),
              static_cast<float>(fontData->atlas.atlasDimensions.y)};
@@ -257,60 +261,68 @@ inline void record_string_text(ecs::Entity e,
   float currentBaselineY =
     static_cast<float>(baseComponent.rect.y) + (fontData->metrics.ascender * fontSize);
 
-  const char *strPtr = textView.data();
-  size_t strLen = textView.size();
+  const auto textString = std::string(textComponent.text);
+  const std::vector<std::string> strings = StringUtils::split(textString, "\n");
 
-  while (strLen > 0 && *counter < MAX_GLYPH_COUNT) {
-    const uint32_t unicodeValue = SDL_StepUTF8(&strPtr, &strLen);
+  for (const auto &line: strings) {
+    const char *strPtr = line.data();
+    size_t strLen = line.size();
 
-    // Handle space character separately (no glyph bounds, only advance)
-    if (unicodeValue == GLYPH_CHARACTER_SPACE) {
-      currentAdvance += SPACE_ADVANCE_MULTIPLIER * fontSize;
-      continue;
+    while (strLen > 0 && *counter < MAX_GLYPH_COUNT) {
+      const uint32_t unicodeValue = SDL_StepUTF8(&strPtr, &strLen);
+
+      // Handle space character separately (no glyph bounds, only advance)
+      if (unicodeValue == GLYPH_CHARACTER_SPACE) {
+        currentAdvance += SPACE_ADVANCE_MULTIPLIER * fontSize;
+        continue;
+      }
+
+      // Check if glyph exists in the font atlas
+      auto glyphIt = fontData->glyphs.find(unicodeValue);
+      if (glyphIt == fontData->glyphs.end()) {
+        continue;
+      }
+      const auto &glyphData = glyphIt->second;
+
+      const float pl = glyphData.planeBounds.left * fontSize;
+      const float pt = glyphData.planeBounds.top * fontSize;
+      const float pr = glyphData.planeBounds.right * fontSize;
+      const float pb = glyphData.planeBounds.bottom * fontSize;
+
+      const float quadWidth = pr - pl;
+      const float quadHeight = pt - pb;
+
+      const float atlasHeight = textureSize.y;
+
+      const Vector4f textureCoords = {
+        glyphData.atlasBounds.left / textureSize.x,
+        (atlasHeight - glyphData.atlasBounds.top) / atlasHeight,
+        glyphData.atlasBounds.right / textureSize.x,
+        (atlasHeight - glyphData.atlasBounds.bottom) / atlasHeight,
+      };
+
+      outInstances->emplace_back(FontGlyphInstance{
+        .position =
+          {
+            .x = static_cast<float>(baseComponent.rect.x) + currentAdvance + pl,
+            .y = currentBaselineY - pt,
+            .z = static_cast<float>(baseComponent.zOrder),
+          },
+        .size =
+          {
+            .x = quadWidth,
+            .y = quadHeight,
+          },
+        .textureCoords = textureCoords,
+        .color = color,
+      });
+
+      currentAdvance += glyphData.advance * fontSize;
+      (*counter)++;
     }
 
-    // Check if glyph exists in the font atlas
-    auto glyphIt = fontData->glyphs.find(unicodeValue);
-    if (glyphIt == fontData->glyphs.end()) {
-      continue;
-    }
-    const auto &glyphData = glyphIt->second;
-
-    const float pl = glyphData.planeBounds.left * fontSize;
-    const float pt = glyphData.planeBounds.top * fontSize;
-    const float pr = glyphData.planeBounds.right * fontSize;
-    const float pb = glyphData.planeBounds.bottom * fontSize;
-
-    const float quadWidth = pr - pl;
-    const float quadHeight = pt - pb;
-
-    const float atlasHeight = textureSize.y;
-
-    const Vector4f textureCoords = {
-      glyphData.atlasBounds.left / textureSize.x,
-      (atlasHeight - glyphData.atlasBounds.top) / atlasHeight,
-      glyphData.atlasBounds.right / textureSize.x,
-      (atlasHeight - glyphData.atlasBounds.bottom) / atlasHeight,
-    };
-
-    outInstances->emplace_back(FontGlyphInstance{
-      .position =
-        {
-          .x = static_cast<float>(baseComponent.rect.x) + currentAdvance + pl,
-          .y = currentBaselineY - pt,
-          .z = static_cast<float>(baseComponent.zOrder),
-        },
-      .size =
-        {
-          .x = quadWidth,
-          .y = quadHeight,
-        },
-      .textureCoords = textureCoords,
-      .color = color,
-    });
-
-    currentAdvance += glyphData.advance * fontSize;
-    (*counter)++;
+    currentBaselineY += lineHeight;
+    currentAdvance = 0.0f;
   }
 }
 
@@ -329,7 +341,7 @@ size_t Renderer::record_glyph_draw_list(const Canvas *canvas,
   textQuery.each([&outInstances, &counter](const ecs::Entity e,
                                            const ecs::BaseComponent &baseComponent,
                                            const TextComponent &textComponent) {
-    record_string_text(e, baseComponent, textComponent, &outInstances, &counter);
+    record_text_component(e, baseComponent, textComponent, &outInstances, &counter);
   });
 
   return counter;
