@@ -20,7 +20,7 @@ float2 sqr(float2 x)
 float screenPxRange(float2 texCoord)
 {
   const float pxRange = 4; // 4px defined in msdf-atlas-gen settings
-  const float texSize = 216; // Hard-coded from msdf-atlas-gen settings
+  const float texSize = 512; // Hard-coded from msdf-atlas-gen settings
 
   float2 unitRange = float2(pxRange, pxRange) / float2(texSize, texSize);
   float2 screenTexSize = float2(1.0, 1.0) / sqrt(sqr(ddx(texCoord)) +
