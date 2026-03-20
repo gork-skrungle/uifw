@@ -30,7 +30,7 @@
 #define GLYPH_CHARACTER_SPACE 0x20
 
 // Space character advance multiplier (fraction of fontSize)
-constexpr float SPACE_ADVANCE_MULTIPLIER = 0.6f;
+constexpr float SPACE_ADVANCE_MULTIPLIER = 0.25f;
 
 constexpr uint32_t MAX_SPRITE_COUNT = 8192;
 constexpr uint32_t MAX_GLYPH_COUNT = 8192;
