@@ -38,6 +38,8 @@ add_library(uifw STATIC
   src/UI/IO/Image/Image.hpp
   src/UI/Utils/FileUtils.hpp
   src/UI/Utils/StringUtils.hpp
+  src/UI/GFX/Renderer/Text/TextRendererHelpers.cpp
+  src/UI/GFX/Renderer/Text/TextRendererHelpers.hpp
 )
 
 target_link_libraries(uifw PUBLIC

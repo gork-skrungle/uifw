@@ -1,0 +1,330 @@
+#include "TextRendererHelpers.hpp"
+
+#include "TextTypes.hpp"
+#include "UI/Utils/StringUtils.hpp"
+
+// Space character advance multiplier (fraction of fontSize)
+constexpr float SPACE_ADVANCE_MULTIPLIER = 0.25f;
+
+constexpr uint32_t MAX_GLYPH_COUNT = 8192;
+
+using namespace ui;
+
+size_t TextRendererHelpers::recordGlyphDrawList(
+  const Canvas *canvas, std::vector<FontGlyphInstance> &outInstances)
+{
+  const auto world = canvas->entity.world();
+  const auto textQuery = world.query<ecs::BaseComponent, TextComponent>();
+
+  // Reserve space to avoid reallocations
+  outInstances.clear();
+  outInstances.reserve(MAX_GLYPH_COUNT);
+
+  size_t counter = 0;
+
+  textQuery.each([&outInstances, &counter](const ecs::Entity e,
+                                           const ecs::BaseComponent &baseComponent,
+                                           const TextComponent &textComponent) {
+    record_text_component(e, baseComponent, textComponent, &outInstances, &counter);
+  });
+
+  return counter;
+}
+
+void TextRendererHelpers::record_text_component(
+  const ecs::Entity e,
+  const ecs::BaseComponent &baseComponent,
+  const TextComponent &textComponent,
+  std::vector<FontGlyphInstance> *outInstances,
+  size_t *counter)
+{
+  const FontData *fontData = textComponent.font;
+
+  const auto fontSize = static_cast<float>(textComponent.pixelSize);
+  const auto lineHeight =
+    fontData->metrics.lineHeight * static_cast<float>(textComponent.pixelSize);
+
+  const float availableWidth = baseComponent.rect.width;
+
+  // Calculate all rendered lines and their widths
+  const auto textString = std::string(textComponent.text);
+  const std::vector<std::string> inputLines = StringUtils::split(textString, "\n");
+
+  // Cache words for each input line to avoid double splits
+  std::vector<std::vector<std::string>> cachedWords;
+  cachedWords.reserve(inputLines.size());
+
+  // Collect all rendered line info
+  struct RenderLine
+  {
+    size_t index;
+    size_t start;
+    size_t end;
+    float width;
+  };
+
+  std::vector<RenderLine> renderLines;
+
+  for (size_t inputIdx = 0; inputIdx < inputLines.size(); inputIdx++) {
+    const auto &line = inputLines[inputIdx];
+    std::vector<std::string> words = StringUtils::split(line, " ");
+    cachedWords.push_back(std::move(words));
+
+    const std::vector<std::pair<size_t, size_t>> lineWraps =
+      calculate_line_wraps(line, textComponent, fontData, availableWidth);
+    const std::vector<float> lineWidths =
+      calculate_wrapped_line_widths(line, textComponent, fontData, availableWidth);
+
+    for (size_t i = 0; i < lineWraps.size(); i++) {
+      renderLines.push_back(
+        {inputIdx, lineWraps[i].first, lineWraps[i].second, lineWidths[i]});
+    }
+  }
+
+  // Calculate vertical alignment offset based on total rendered line count
+  const float totalTextHeight = static_cast<float>(renderLines.size()) * lineHeight;
+  float verticalOffset;
+
+  switch (textComponent.verticalAlignment) {
+  case TextVAlignment_Middle:
+    verticalOffset =
+      (static_cast<float>(baseComponent.rect.height) - totalTextHeight) / 2.0f;
+    break;
+  case TextVAlignment_Bottom:
+    verticalOffset = static_cast<float>(baseComponent.rect.height) - totalTextHeight;
+    break;
+  case TextVAlignment_Top:
+  default:
+    verticalOffset = 0.0f;
+    break;
+  }
+
+  float currentBaselineY = static_cast<float>(baseComponent.rect.y) +
+    (fontData->metrics.ascender * fontSize) + verticalOffset;
+
+  // Record each rendered line with its own alignment offset
+  for (const auto &renderLine : renderLines) {
+    const float lineWidth = renderLine.width;
+
+    // Calculate horizontal alignment offset for this specific rendered line
+    float alignmentOffset = 0.0f;
+    switch (textComponent.horizontalAlignment) {
+    case TextHAlignment_Center:
+      alignmentOffset = (availableWidth - lineWidth) / 2.0f;
+      break;
+    case TextHAlignment_Right:
+      alignmentOffset = availableWidth - lineWidth;
+      break;
+    case TextHAlignment_Left:
+    default:
+      alignmentOffset = 0.0f;
+      break;
+    }
+
+    record_line(cachedWords[renderLine.index], renderLine.start, renderLine.end, e,
+                baseComponent, textComponent, outInstances, counter, &currentBaselineY,
+                alignmentOffset);
+
+    currentBaselineY += lineHeight;
+  }
+}
+
+void TextRendererHelpers::record_line(const std::vector<std::string> &words,
+                                      const size_t startIdx,
+                                      const size_t endIdx,
+                                      const ecs::Entity e,
+                                      const ecs::BaseComponent &baseComponent,
+                                      const TextComponent &textComponent,
+                                      std::vector<FontGlyphInstance> *outInstances,
+                                      size_t *counter,
+                                      const float *currentBaselineY,
+                                      const float alignmentOffset)
+{
+  float currentAdvance = alignmentOffset;
+
+  const float fontSize = textComponent.pixelSize;
+  const float spaceWidth = SPACE_ADVANCE_MULTIPLIER * fontSize;
+
+  for (size_t i = startIdx; i < endIdx; i++) {
+    const std::string &word = words[i];
+
+    // Record word
+    record_word(word, baseComponent, textComponent, outInstances, counter,
+                *currentBaselineY, &currentAdvance);
+
+    // Add space after word
+    currentAdvance += spaceWidth;
+  }
+}
+
+void TextRendererHelpers::record_word(const std::string &wordText,
+                                      const ecs::BaseComponent &baseComponent,
+                                      const TextComponent &textComponent,
+                                      std::vector<FontGlyphInstance> *outInstances,
+                                      size_t *counter,
+                                      const float currentBaselineY,
+                                      float *currentAdvance)
+{
+  const FontData *fontData = textComponent.font;
+
+  const auto fontSize = static_cast<float>(textComponent.pixelSize);
+  const auto textureSize =
+    Vector2f{static_cast<float>(fontData->atlas.atlasDimensions.x),
+             static_cast<float>(fontData->atlas.atlasDimensions.y)};
+
+  const char *strPtr = wordText.data();
+  size_t strLen = wordText.size();
+
+  while (strLen > 0 && *counter < MAX_GLYPH_COUNT) {
+    const uint32_t unicodeValue = SDL_StepUTF8(&strPtr, &strLen);
+
+    // Check if glyph exists in the font atlas
+    auto glyphIt = fontData->glyphs.find(unicodeValue);
+    if (glyphIt == fontData->glyphs.end()) {
+      continue;
+    }
+    const auto &glyphData = glyphIt->second;
+
+    const float pl = glyphData.planeBounds.left * fontSize;
+    const float pt = glyphData.planeBounds.top * fontSize;
+    const float pr = glyphData.planeBounds.right * fontSize;
+    const float pb = glyphData.planeBounds.bottom * fontSize;
+
+    const float quadWidth = pr - pl;
+    const float quadHeight = pt - pb;
+
+    const float atlasHeight = textureSize.y;
+
+    const Vector4f textureCoords = {
+      glyphData.atlasBounds.left / textureSize.x,
+      (atlasHeight - glyphData.atlasBounds.top) / atlasHeight,
+      glyphData.atlasBounds.right / textureSize.x,
+      (atlasHeight - glyphData.atlasBounds.bottom) / atlasHeight,
+    };
+
+    outInstances->emplace_back(FontGlyphInstance{
+      .position =
+        {
+          .x = static_cast<float>(baseComponent.rect.x) + *currentAdvance + pl,
+          .y = currentBaselineY - pt,
+          .z = static_cast<float>(baseComponent.zOrder),
+        },
+      .size =
+        {
+          .x = quadWidth,
+          .y = quadHeight,
+        },
+      .textureCoords = textureCoords,
+      .color = textComponent.color,
+    });
+
+    *currentAdvance += glyphData.advance * fontSize;
+    (*counter)++;
+  }
+}
+
+std::vector<std::pair<size_t, size_t>> TextRendererHelpers::calculate_line_wraps(
+  const std::string &lineText,
+  const TextComponent &textComponent,
+  const FontData *fontData,
+  const float availableWidth)
+{
+  const float fontSize = textComponent.pixelSize;
+  const float spaceWidth = SPACE_ADVANCE_MULTIPLIER * fontSize;
+
+  std::vector<std::pair<size_t, size_t>> lineWraps; // (startWordIndex, endWordIndex)
+  float currentAdvance = 0.0f;
+  size_t lineStartIndex = 0;
+
+  const std::vector<std::string> words = StringUtils::split(lineText, " ");
+
+  for (size_t i = 0; i < words.size(); i++) {
+    const std::string &word = words[i];
+    const float wordLength = get_word_length(word, textComponent, fontData);
+
+    // Calculate total width needed for this word (including preceding space if not at
+    // line start)
+    const float totalWordWidth =
+      (currentAdvance > 0.0f) ? (wordLength + spaceWidth) : wordLength;
+
+    // Check if word would overflow the line
+    if (i > 0 && textComponent.lineWrapping &&
+        currentAdvance + totalWordWidth > availableWidth) {
+      // Complete the current line
+      lineWraps.emplace_back(lineStartIndex, i);
+      lineStartIndex = i;
+      currentAdvance = 0.0f;
+    }
+
+    currentAdvance += totalWordWidth;
+  }
+
+  // Store final line
+  lineWraps.emplace_back(lineStartIndex, words.size());
+
+  return lineWraps;
+}
+
+std::vector<float> TextRendererHelpers::calculate_wrapped_line_widths(
+  const std::string &lineText,
+  const TextComponent &textComponent,
+  const FontData *fontData,
+  const float availableWidth)
+{
+  const float fontSize = textComponent.pixelSize;
+  const float spaceWidth = SPACE_ADVANCE_MULTIPLIER * fontSize;
+
+  std::vector<float> lineWidths;
+  float currentAdvance = 0.0f;
+
+  const std::vector<std::string> words = StringUtils::split(lineText, " ");
+
+  for (size_t i = 0; i < words.size(); i++) {
+    const std::string &word = words[i];
+    const float wordLength = get_word_length(word, textComponent, fontData);
+
+    // Calculate total width needed for this word
+    const float totalWordWidth =
+      (currentAdvance > 0.0f) ? (wordLength + spaceWidth) : wordLength;
+
+    // Check if word would overflow the line
+    if (i > 0 && textComponent.lineWrapping &&
+        currentAdvance + totalWordWidth > availableWidth) {
+      // Store the width of the completed line (without trailing space)
+      lineWidths.emplace_back(currentAdvance - spaceWidth);
+      currentAdvance = 0.0f;
+    }
+
+    currentAdvance += totalWordWidth;
+  }
+
+  // Store final line width
+  lineWidths.emplace_back(currentAdvance - spaceWidth);
+
+  return lineWidths;
+}
+
+float TextRendererHelpers::get_word_length(const std::string &wordText,
+                                           const TextComponent &textComponent,
+                                           const FontData *fontData)
+{
+  float currentAdvance = 0.0f;
+  const float fontSize = textComponent.pixelSize;
+
+  const char *strPtr = wordText.data();
+  size_t strLen = wordText.size();
+
+  while (strLen > 0) {
+    const uint32_t unicodeValue = SDL_StepUTF8(&strPtr, &strLen);
+    auto glyphIt = fontData->glyphs.find(unicodeValue);
+
+    if (glyphIt == fontData->glyphs.end()) {
+      continue;
+    }
+
+    const auto &glyphData = glyphIt->second;
+    currentAdvance += glyphData.advance * fontSize;
+  }
+
+  return currentAdvance;
+}

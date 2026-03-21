@@ -78,9 +78,6 @@ private:
   static size_t record_sprite_draw_list(const Window *window,
                                         std::vector<SpriteInstance> &outInstances);
 
-  static size_t record_glyph_draw_list(const Canvas *canvas,
-                                       std::vector<FontGlyphInstance> &outInstances);
-
   static void create_text_render_pipeline(const RendererData *renderer,
                                           const Canvas *canvas,
                                           DrawPipeline *pipeline);
