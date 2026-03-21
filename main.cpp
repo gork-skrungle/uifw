@@ -138,8 +138,8 @@ int main()
 
     auto buttonBaseComponent = button.get_ref<ui::ecs::BaseComponent>();
     buttonBaseComponent->inLayout = true;
-    buttonBaseComponent->minHeight = 23;
-    buttonBaseComponent->maxHeight = 23;
+    buttonBaseComponent->minHeight = 30;
+    buttonBaseComponent->maxHeight = 30;
     buttonBaseComponent->minWidth = 75;
     buttonBaseComponent->maxWidth = 75;
   }
@@ -168,12 +168,14 @@ int main()
     .borderRadius = {10, 20, 15, 30}
   });
   e2.add<ui::ecs::QuadRendererComponent>();
-  e4.add<ui::ecs::QuadRendererComponent>();
+  e4.set<ui::ecs::QuadRendererComponent>({
+    .color = blue,
+    .borderRadius = {9, 9, 9, 9}
+  });
   e5.add<ui::ecs::QuadRendererComponent>();
   e6.add<ui::ecs::QuadRendererComponent>();
 
   e2.get_ref<ui::ecs::QuadRendererComponent>()->color = green;
-  e4.get_ref<ui::ecs::QuadRendererComponent>()->color = blue;
   e5.get_ref<ui::ecs::QuadRendererComponent>()->color = white;
   e6.get_ref<ui::ecs::QuadRendererComponent>()->color = red;
   /* --------------------------------------------------------------------- */
